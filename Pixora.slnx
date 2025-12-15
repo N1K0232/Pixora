@@ -7,7 +7,16 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Pixora.Authentication/Pixora.Authentication.csproj" Id="9ef07f07-7f1d-4339-b3aa-a71a32ebd398" />
     <Project Path="src/Pixora.BusinessLayer/Pixora.BusinessLayer.csproj" Id="4ad9c9b0-ebc6-4594-9884-7cb140318e43" />
+    <Project Path="src/Pixora.DataAccessLayer/Pixora.DataAccessLayer.csproj" Id="50e10016-b886-4e2d-a415-5584155b8c0c" />
+    <Project Path="src/Pixora.Database/Pixora.Database.sqlproj" Id="1023a3f5-fccc-4802-9ab4-d3fc6677eb9d">
+      <Build />
+      <Deploy />
+    </Project>
+    <Project Path="src/Pixora.DataProtectionLayer/Pixora.DataProtectionLayer.csproj" Id="21b84fba-1319-447d-b7f9-9a5b07d9947a" />
+    <Project Path="src/Pixora.Shared/Pixora.Shared.csproj" Id="976d594b-160d-4b6a-be64-e7c24927a7dc" />
+    <Project Path="src/Pixora.StorageProviders/Pixora.StorageProviders.csproj" Id="d5f5b8db-ce81-4a14-a372-f9b1c023e450" />
     <Project Path="src/Pixora/Pixora.csproj" Id="6bbfd9b9-627e-424b-bfcb-693e2b5742f1" />
   </Folder>
 </Solution>

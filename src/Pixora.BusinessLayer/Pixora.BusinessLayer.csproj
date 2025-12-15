@@ -12,4 +12,9 @@
     <PackageReference Include="TinyHelpers" Version="3.3.14" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Pixora.DataAccessLayer\Pixora.DataAccessLayer.csproj" />
+    <ProjectReference Include="..\Pixora.StorageProviders\Pixora.StorageProviders.csproj" />
+  </ItemGroup>
+
 </Project>
