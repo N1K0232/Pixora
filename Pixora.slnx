@@ -6,5 +6,8 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
-  <Folder Name="/src/" />
+  <Folder Name="/src/">
+    <Project Path="src/Pixora.BusinessLayer/Pixora.BusinessLayer.csproj" Id="4ad9c9b0-ebc6-4594-9884-7cb140318e43" />
+    <Project Path="src/Pixora/Pixora.csproj" Id="6bbfd9b9-627e-424b-bfcb-693e2b5742f1" />
+  </Folder>
 </Solution>
