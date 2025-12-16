@@ -12,5 +12,7 @@ public class AppSettings
 
     public string? SenderName { get; init; }
 
+    public string StorageFolder { get; init; } = string.Empty;
+
     public string[] SupportedCultures { get; init; } = [];
 }

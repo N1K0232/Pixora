@@ -23,6 +23,7 @@ using Pixora.DataAccessLayer;
 using Pixora.Extensions;
 using Pixora.Logging;
 using Pixora.Requirements;
+using Pixora.StorageProviders.Extensions;
 using Pixora.Swagger;
 using Serilog;
 using Serilog.Core;
@@ -31,6 +32,7 @@ using SimpleAuthentication;
 using SimpleTransit;
 using TinyHelpers.AspNetCore.Extensions;
 using TinyHelpers.AspNetCore.OpenApi;
+using TinyHelpers.Extensions;
 using TinyHelpers.Json.Serialization;
 using ResultErrorResponseFormat = OperationResults.AspNetCore.Http.ErrorResponseFormat;
 using ValidationErrorResponseFormat = MinimalHelpers.Validation.ErrorResponseFormat;
@@ -145,6 +147,23 @@ builder.Services.AddAuthorization(options =>
 
     options.DefaultPolicy = authorizationPolicyBuilder.Build();
 });
+
+var azureStorageConnectionString = builder.Configuration.GetConnectionString("AzureStorageConnection");
+if (azureStorageConnectionString.HasValue())
+{
+    builder.Services.AddAzureStorage(options =>
+    {
+        options.ConnectionString = azureStorageConnectionString;
+        options.ContainerName = settings.StorageFolder;
+    });
+}
+else
+{
+    builder.Services.AddFileSystemStorage(options =>
+    {
+        options.StorageFolder = settings.StorageFolder;
+    });
+}
 
 if (settings.ExecuteStartup)
 {
