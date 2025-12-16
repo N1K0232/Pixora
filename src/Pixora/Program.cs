@@ -1,10 +1,29 @@
+using System.Security.Cryptography;
 using System.Text.Json.Serialization;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using MinimalHelpers.Routing;
 using MinimalHelpers.Validation;
 using OperationResults.AspNetCore.Http;
+using Pixora.Authentication.Entities;
+using Pixora.BusinessLayer.Clients;
+using Pixora.BusinessLayer.Clients.Interfaces;
+using Pixora.BusinessLayer.Publishers;
+using Pixora.BusinessLayer.Services;
 using Pixora.BusinessLayer.Settings;
+using Pixora.BusinessLayer.Startup;
+using Pixora.BusinessLayer.Validation;
+using Pixora.DataAccessLayer;
 using Pixora.Extensions;
+using Pixora.Requirements;
 using Pixora.Swagger;
+using SimpleAuthentication;
+using SimpleTransit;
 using TinyHelpers.AspNetCore.Extensions;
 using TinyHelpers.AspNetCore.OpenApi;
 using TinyHelpers.Json.Serialization;
@@ -32,9 +51,19 @@ if (swagger.IsEnabled)
     {
         options.AddDefaultProblemDetailsResponse();
         options.AddAcceptLanguageHeader();
+
+        options.AddSimpleAuthentication(builder.Configuration);
         options.RemoveServerList();
     });
 }
+
+builder.Services.AddSingleton(RandomNumberGenerator.Create());
+builder.Services.AddSingleton<IEmailClient, EmailClient>();
+
+builder.Services.AddSimpleTransit(options =>
+{
+    options.RegisterServicesFromAssemblyContaining<UserRegistratedNotificationHandler>();
+});
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -51,10 +80,63 @@ builder.Services.AddOperationResult(options =>
     options.ErrorResponseFormat = ResultErrorResponseFormat.List;
 });
 
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.ConfigureValidation(options =>
 {
     options.ErrorResponseFormat = ValidationErrorResponseFormat.List;
 });
+
+builder.Services.AddSqlServer<ApplicationDbContext>(builder.Configuration.GetConnectionString("SqlConnection"));
+
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+{
+    options.Lockout.MaxFailedAccessAttempts = 3;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    options.User.RequireUniqueEmail = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireDigit = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
+
+builder.Services.AddDataProtection(settings.ApplicationName).PersistKeysToDbContext<ApplicationDbContext>();
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddSimpleAuthentication(builder.Configuration, addAuthorizationServices: false)
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    options.LoginPath = "/Accounts/Login";
+    options.LogoutPath = "/Accounts/Logout";
+    options.ExpireTimeSpan = TimeSpan.FromHours(1);
+    options.SlidingExpiration = true;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+});
+
+builder.Services.AddScoped<IAuthorizationHandler, UserActiveHandler>();
+builder.Services.AddAuthorization(options =>
+{
+    var authorizationPolicyBuilder = new AuthorizationPolicyBuilder().RequireAuthenticatedUser();
+    authorizationPolicyBuilder.Requirements.Add(new UserActiveRequirement());
+
+    options.DefaultPolicy = authorizationPolicyBuilder.Build();
+});
+
+if (settings.ExecuteStartup)
+{
+    builder.Services.AddHostedService<IdentityStartupService>();
+}
+
+builder.Services.Scan(scan => scan.FromAssemblyOf<IdentityService>()
+    .AddClasses(classes => classes.InNamespaceOf<IdentityService>())
+    .AsImplementedInterfaces()
+    .WithScopedLifetime());
 
 var app = builder.Build();
 app.Environment.ApplicationName = settings.ApplicationName;
@@ -98,6 +180,8 @@ app.UseRequestLocalization();
 app.UseWhen(context => context.IsApiRequest(), builder =>
 {
     builder.UseRequestTimeouts();
+    builder.UseAuthentication();
+    builder.UseAuthorization();
 });
 
 app.MapRazorPages();

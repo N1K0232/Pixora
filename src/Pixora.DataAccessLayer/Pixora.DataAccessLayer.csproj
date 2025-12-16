@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="EntityFrameworkCore.Exceptions.SqlServer" Version="8.1.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Pixora.Authentication\Pixora.Authentication.csproj" />
     <ProjectReference Include="..\Pixora.Shared\Pixora.Shared.csproj" />
   </ItemGroup>
