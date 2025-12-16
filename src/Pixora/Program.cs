@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using FluentValidation;
@@ -20,8 +21,12 @@ using Pixora.BusinessLayer.Startup;
 using Pixora.BusinessLayer.Validation;
 using Pixora.DataAccessLayer;
 using Pixora.Extensions;
+using Pixora.Logging;
 using Pixora.Requirements;
 using Pixora.Swagger;
+using Serilog;
+using Serilog.Core;
+using Serilog.Debugging;
 using SimpleAuthentication;
 using SimpleTransit;
 using TinyHelpers.AspNetCore.Extensions;
@@ -32,6 +37,17 @@ using ValidationErrorResponseFormat = MinimalHelpers.Validation.ErrorResponseFor
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.local.json", true, true);
+
+builder.Host.UseSerilog((hostingContext, services, loggerConfiguration) =>
+{
+    loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration);
+    loggerConfiguration.ReadFrom.Services(services);
+
+    SelfLog.Enable(message =>
+    {
+        Debug.Print(message);
+    });
+});
 
 var settings = builder.Services.ConfigureAndGet<AppSettings>(builder.Configuration, nameof(AppSettings)) ?? new AppSettings();
 var swagger = builder.Services.ConfigureAndGet<SwaggerSettings>(builder.Configuration, nameof(SwaggerSettings)) ?? new SwaggerSettings();
@@ -75,12 +91,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddDefaultExceptionHandler();
 builder.Services.AddDefaultProblemDetails();
 
+builder.Services.AddSingleton<ILogEventEnricher, HttpContextEnricher>();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+
 builder.Services.AddOperationResult(options =>
 {
     options.ErrorResponseFormat = ResultErrorResponseFormat.List;
 });
 
-builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.ConfigureValidation(options =>
 {
     options.ErrorResponseFormat = ValidationErrorResponseFormat.List;
@@ -181,6 +199,12 @@ app.UseWhen(context => context.IsApiRequest(), builder =>
 {
     builder.UseRequestTimeouts();
     builder.UseAuthentication();
+
+    builder.UseSerilogRequestLogging(options =>
+    {
+        options.IncludeQueryInRequestPath = true;
+    });
+
     builder.UseAuthorization();
 });
 
