@@ -13,7 +13,7 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
 {
     public static void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        var authApiGroup = endpoints.MapGroup("/api/auth").WithTags("Auth");
+        var authApiGroup = endpoints.MapGroup("/api/auth").AllowAnonymous().WithTags("Auth");
 
         authApiGroup.MapGet("confirm", ConfirmEmailAsync)
             .Produces<AuthResponse>()
