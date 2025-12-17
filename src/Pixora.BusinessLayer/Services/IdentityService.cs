@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Mime;
 using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using OperationResults;
 using Pixora.Authentication.Entities;
+using Pixora.BusinessLayer.Generators.Interfaces;
 using Pixora.BusinessLayer.Services.Interfaces;
 using Pixora.DataProtectionLayer;
 using Pixora.Shared.Models;
@@ -15,10 +17,11 @@ using Pixora.Shared.Models.Requests;
 using Pixora.Shared.Notifications;
 using SimpleAuthentication.JwtBearer;
 using SimpleTransit;
+using TinyHelpers.Extensions;
 
 namespace Pixora.BusinessLayer.Services;
 
-public class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, TimeProvider timeProvider, RandomNumberGenerator generator, IDataProtectionService dataProtectionService, ITimeLimitedDataProtectionService timeLimitedDataProtectionService, IJwtBearerService jwtBearerService, INotificationPublisher notificationPublisher) : IIdentityService
+public class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, TimeProvider timeProvider, RandomNumberGenerator generator, IDataProtectionService dataProtectionService, ITimeLimitedDataProtectionService timeLimitedDataProtectionService, IQrCodeGenerator qrCodeGenerator, IJwtBearerService jwtBearerService, INotificationPublisher notificationPublisher) : IIdentityService
 {
     public async Task<Result> ConfirmEmailAsync(string secret, string token, CancellationToken cancellationToken)
     {
@@ -52,6 +55,29 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
         return Result.Fail(FailureReasons.ClientError, "Invalid or expired token", "Invalid or expired token");
     }
 
+    public async Task<Result<StreamFileContent>> GetQrCodeAsync(string token, CancellationToken cancellationToken)
+    {
+        ApplicationUser? user;
+
+        try
+        {
+            var userId = await timeLimitedDataProtectionService.UnprotectAsync(token, cancellationToken);
+            user = await userManager.FindByIdAsync(userId);
+        }
+        catch
+        {
+            return Result.Fail(FailureReasons.ClientError, "Problem occurred while generating the QR Code", "Problem occurred while generating the QR Code");
+        }
+
+        if (user is null || (await userManager.GetAuthenticatorKeyAsync(user)).HasValue())
+        {
+            return Result.Fail(FailureReasons.ClientError, "Problem occurred while generating the QR Code", "Problem occurred while generating the QR Code");
+        }
+
+        var qrCodeStream = await qrCodeGenerator.GenerateAsync(user, cancellationToken);
+        return new StreamFileContent(qrCodeStream, MediaTypeNames.Image.Png);
+    }
+
     public async Task<Result<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByEmailAsync(request.Email);
@@ -63,6 +89,12 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
         var signInResult = await signInManager.PasswordSignInAsync(user, request.Password, false, false);
         if (!signInResult.Succeeded)
         {
+            if (signInResult.RequiresTwoFactor)
+            {
+                var twoFactorToken = await timeLimitedDataProtectionService.ProtectAsync(user.Id.ToString(), TimeSpan.FromMinutes(15), cancellationToken);
+                return new AuthResponse(twoFactorToken);
+            }
+
             if (signInResult.IsLockedOut)
             {
                 return Result.Fail(FailureReasons.ClientError, "User locked out", $"Your account is locked until {user.LockoutEnd}");
@@ -118,6 +150,34 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
         {
             return Result.Fail(FailureReasons.ClientError, "Couldn't send email", ex.Message);
         }
+    }
+
+    public async Task<Result<AuthResponse>> ValidateTwoFactorAsync(TwoFactorValidationRequest request, CancellationToken cancellationToken)
+    {
+        ApplicationUser? user;
+
+        try
+        {
+            var userId = await timeLimitedDataProtectionService.UnprotectAsync(request.Token, cancellationToken);
+            user = await userManager.FindByIdAsync(userId);
+        }
+        catch
+        {
+            return Result.Fail(FailureReasons.ClientError, "Invalid code", "Invalid code");
+        }
+
+        if (user is null)
+        {
+            return Result.Fail(FailureReasons.ClientError, "Invalid code", "Invalid code");
+        }
+
+        var isValidTotpCode = await userManager.VerifyTwoFactorTokenAsync(user, userManager.Options.Tokens.AuthenticatorTokenProvider, request.Code);
+        if (!isValidTotpCode)
+        {
+            return Result.Fail(FailureReasons.ClientError, "Invalid code", "Invalid code");
+        }
+
+        return await CreateResponseAsync(user, cancellationToken);
     }
 
     private async Task<AuthResponse> CreateResponseAsync(ApplicationUser user, CancellationToken cancellationToken)

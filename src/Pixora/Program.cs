@@ -14,6 +14,8 @@ using OperationResults.AspNetCore.Http;
 using Pixora.Authentication.Entities;
 using Pixora.BusinessLayer.Clients;
 using Pixora.BusinessLayer.Clients.Interfaces;
+using Pixora.BusinessLayer.Generators;
+using Pixora.BusinessLayer.Generators.Interfaces;
 using Pixora.BusinessLayer.Publishers;
 using Pixora.BusinessLayer.Services;
 using Pixora.BusinessLayer.Settings;
@@ -94,8 +96,9 @@ builder.Services.AddDefaultExceptionHandler();
 builder.Services.AddDefaultProblemDetails();
 
 builder.Services.AddSingleton<ILogEventEnricher, HttpContextEnricher>();
-builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+builder.Services.AddScoped<IQrCodeGenerator, QrCodeImageGenerator>();
 
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.AddOperationResult(options =>
 {
     options.ErrorResponseFormat = ResultErrorResponseFormat.List;
@@ -107,6 +110,7 @@ builder.Services.ConfigureValidation(options =>
 });
 
 builder.Services.AddSqlServer<ApplicationDbContext>(builder.Configuration.GetConnectionString("SqlConnection"));
+builder.Services.AddScoped<IApplicationDbContext>(services => services.GetRequiredService<ApplicationDbContext>());
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 {

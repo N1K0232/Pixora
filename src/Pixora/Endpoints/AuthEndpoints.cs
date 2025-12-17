@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Net.Mime;
+using System.Security.Claims;
 using MinimalHelpers.FluentValidation;
 using MinimalHelpers.Routing;
 using OperationResults.AspNetCore.Http;
@@ -16,9 +17,14 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
         var authApiGroup = endpoints.MapGroup("/api/auth").AllowAnonymous().WithTags("Auth");
 
         authApiGroup.MapGet("confirm", ConfirmEmailAsync)
-            .Produces<AuthResponse>()
+            .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status400BadRequest)
             .WithName("confirm");
+
+        authApiGroup.MapGet("qrcode", GetQrCodeAsync)
+            .Produces(StatusCodes.Status200OK, contentType: MediaTypeNames.Image.Png)
+            .Produces(StatusCodes.Status400BadRequest)
+            .WithName("qrcode");
 
         authApiGroup.MapPost("login", LoginAsync)
             .Produces<AuthResponse>()
@@ -32,11 +38,17 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
             .WithValidation<RegisterRequest>()
             .WithName("register");
 
-        authApiGroup.MapPost("refresh", RefreshTokeAsync)
+        authApiGroup.MapPost("refresh", RefreshTokenAsync)
             .Produces<AuthResponse>()
             .Produces(StatusCodes.Status400BadRequest)
             .WithValidation<RefreshTokenRequest>()
             .WithName("refresh");
+
+        authApiGroup.MapPost("validate2fa", ValidateTwoFactorAsync)
+            .Produces<AuthResponse>()
+            .Produces(StatusCodes.Status400BadRequest)
+            .WithValidation<TwoFactorValidationRequest>()
+            .WithName("validate2fa");
 
         endpoints.MapGet("/api/me", (ClaimsPrincipal principal) =>
         {
@@ -65,6 +77,14 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
         return response;
     }
 
+    private static async Task<IResult> GetQrCodeAsync(string token, IIdentityService identityService, HttpContext httpContext)
+    {
+        var result = await identityService.GetQrCodeAsync(token, httpContext.RequestAborted);
+
+        var response = httpContext.CreateResponse(result);
+        return response;
+    }
+
     private static async Task<IResult> LoginAsync(LoginRequest request, IIdentityService identityService, HttpContext httpContext)
     {
         var result = await identityService.LoginAsync(request, httpContext.RequestAborted);
@@ -81,9 +101,17 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
         return response;
     }
 
-    private static async Task<IResult> RefreshTokeAsync(RefreshTokenRequest request, IIdentityService identityService, HttpContext httpContext)
+    private static async Task<IResult> RefreshTokenAsync(RefreshTokenRequest request, IIdentityService identityService, HttpContext httpContext)
     {
         var result = await identityService.RefreshTokenAsync(request, httpContext.RequestAborted);
+
+        var response = httpContext.CreateResponse(result);
+        return response;
+    }
+
+    private static async Task<IResult> ValidateTwoFactorAsync(TwoFactorValidationRequest request, IIdentityService identityService, HttpContext httpContext)
+    {
+        var result = await identityService.ValidateTwoFactorAsync(request, httpContext.RequestAborted);
 
         var response = httpContext.CreateResponse(result);
         return response;
