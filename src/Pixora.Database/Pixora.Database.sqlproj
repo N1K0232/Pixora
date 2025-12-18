@@ -71,6 +71,7 @@
     <Build Include="dbo\Tables\AspNetUsers.sql" />
     <Build Include="dbo\Tables\AspNetUserTokens.sql" />
     <Build Include="dbo\Tables\DataProtectionKeys.sql" />
+    <Build Include="dbo\Tables\Images.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Pixora.Database.publish.xml" />
