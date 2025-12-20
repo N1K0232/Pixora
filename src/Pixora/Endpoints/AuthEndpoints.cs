@@ -1,9 +1,7 @@
 ﻿using System.Net.Mime;
-using System.Security.Claims;
 using MinimalHelpers.FluentValidation;
 using MinimalHelpers.Routing;
 using OperationResults.AspNetCore.Http;
-using Pixora.Authentication.Extensions;
 using Pixora.BusinessLayer.Services.Interfaces;
 using Pixora.Shared.Models;
 using Pixora.Shared.Models.Requests;
@@ -49,24 +47,6 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
             .Produces(StatusCodes.Status400BadRequest)
             .WithValidation<TwoFactorValidationRequest>()
             .WithName("validate2fa");
-
-        endpoints.MapGet("/api/me", (ClaimsPrincipal principal) =>
-        {
-            var user = new User
-            {
-                Id = principal.GetId(),
-                FirstName = principal.GetFirstName(),
-                LastName = principal.GetLastName(),
-                Email = principal.GetEmail(),
-                UserName = principal.Identity?.Name ?? string.Empty
-            };
-
-            return TypedResults.Ok(user);
-        })
-        .RequireAuthorization()
-        .Produces<User>()
-        .WithTags("Me")
-        .WithName("me");
     }
 
     private static async Task<IResult> ConfirmEmailAsync(string secret, string token, IIdentityService identityService, HttpContext httpContext)

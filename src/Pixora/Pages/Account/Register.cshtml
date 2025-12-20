@@ -1,0 +1,43 @@
+﻿@page "/Account/Register"
+
+@model RegisterModel
+
+<div class="auth" x-data="auth">
+    <div class="text-center wrapper">
+        <h3>Sign up</h3>
+        <form x-on:submit.prevent>
+            <div class="col-auto mt-2 input-box">
+                <input type="text" x-model="firstName" placeholder="Enter your first name" required />
+            </div>
+            <div class="col-auto mt-2 input-box">
+                <input type="text" x-model="lastName" placeholder="Enter your last name" required />
+            </div>
+            <div class="col-auto mt-2 input-box">
+                <input type="email" x-model="email" placeholder="Enter your email" required />
+            </div>
+            <div class="col-auto mt-2 input-box">
+                <input type="text" x-model="userName" placeholder="Enter your user name" required />
+            </div>
+            <div class="col-auto mt-2 input-box">
+                <input type="password" x-model="password" placeholder="Enter the password for this account" required />
+            </div>
+            <div class="mb-4 flex items-center gap-2">
+                <input type="checkbox" id="enableNotifications" x-model="enableNotifications"
+                       class="w-4 h-4" />
+                <label for="enableNotifications">Enable email notifications</label>
+            </div>
+            <div class="col-auto mt-3">
+                <button class="btn" type="submit" x-on:click="register()" x-bind:disabled="isBusy">Register</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script>
+        document.addEventListener("alpine:init", () => {
+            auth('@Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName');
+        });
+    </script>
+}

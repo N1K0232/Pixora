@@ -1,0 +1,36 @@
+﻿@page "/Account/Login"
+
+@model LoginModel
+
+<div class="auth" x-data="auth">
+    <div class="text-center wrapper">
+        <h3>Sign in</h3>
+        <form x-on:submit.prevent>
+            <div class="input-box">
+                <input type="email" x-model="email" placeholder="Email" required />
+            </div>
+            <div class="input-box">
+                <input type="password" x-model="password" placeholder="Password" required />
+            </div>
+            <div class="remember-forgot">
+                <label><input type="checkbox" x-model="isPersistent" />Remember me</label>
+                <a href="/Account/ResetPassword">Forgot password?</a>
+            </div>
+            <div class="col-auto mt-3">
+                <button class="btn" type="submit" x-on:click="login()" x-bind:disabled="isBusy">Login</button>
+            </div>
+            <div class="register-link">
+                <p>Don't you have an account? <a href="/Account/Register">Register</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script>
+        document.addEventListener("alpine:init", () => {
+            auth('@Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName');
+        });
+    </script>
+}

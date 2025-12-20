@@ -2,15 +2,18 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.EntityFrameworkCore;
 using MinimalHelpers.Routing;
 using MinimalHelpers.Validation;
 using OperationResults.AspNetCore.Http;
+using Pixora.Authentication.Claims;
 using Pixora.Authentication.Entities;
 using Pixora.BusinessLayer.Clients;
 using Pixora.BusinessLayer.Clients.Interfaces;
@@ -27,6 +30,7 @@ using Pixora.Logging;
 using Pixora.Requirements;
 using Pixora.StorageProviders.Extensions;
 using Pixora.Swagger;
+using QRCoder;
 using Serilog;
 using Serilog.Core;
 using Serilog.Debugging;
@@ -95,10 +99,12 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddDefaultExceptionHandler();
 builder.Services.AddDefaultProblemDetails();
 
-builder.Services.AddSingleton<ILogEventEnricher, HttpContextEnricher>();
+builder.Services.AddSingleton(new QRCodeGenerator());
 builder.Services.AddScoped<IQrCodeGenerator, QrCodeImageGenerator>();
 
+builder.Services.AddSingleton<ILogEventEnricher, HttpContextEnricher>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+
 builder.Services.AddOperationResult(options =>
 {
     options.ErrorResponseFormat = ResultErrorResponseFormat.List;
@@ -127,6 +133,8 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 .AddDefaultTokenProviders();
 
 builder.Services.AddDataProtection(settings.ApplicationName).PersistKeysToDbContext<ApplicationDbContext>();
+//builder.Services.AddScoped<IClaimsTransformation, UserClaimsTransformation>();
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

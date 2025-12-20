@@ -19,13 +19,44 @@ body {
     margin-bottom: 80px;
 }
 
-*:focus {
+button:focus,
+.btn:focus,
+input:focus,
+textarea:focus,
+select:focus {
     box-shadow: none !important;
+    outline: none !important;
+}
+
+.navbar {
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .navbar-brand {
-    padding-top: 0px;
-    padding-bottom: 0px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.navbar .btn {
+    opacity: 1;
+    color: inherit;
+}
+
+.navbar-light .btn-outline-primary {
+    color: var(--bs-primary);
+}
+
+.navbar-light .btn-outline-primary:hover {
+    color: #fff;
+}
+
+.navbar-dark .btn-outline-light {
+    color: #fff;
+}
+
+.navbar img {
+    object-fit: cover;
 }
 
 .footer {
@@ -51,11 +82,7 @@ body {
     border: 2px solid #ddd;
     padding: 2px;
     flex: none;
-}
-
-input:focus {
-    outline: 0px !important;
-    box-shadow: none !important;
+    object-fit: cover;
 }
 
 input[type="checkbox"],
@@ -125,18 +152,15 @@ input[type="checkbox"] + label {
     background-color: var(--bd-pre-bg);
     border: 0;
     border-radius: .25rem;
-    margin-right: -.4em
+    margin-right: -.4em;
+    position: relative;
+    z-index: 2;
 }
 
 .btn-clipboard:hover {
-    color: var(--bs-link-hover-color)
+    color: var(--bs-link-hover-color);
 }
 
 .btn-clipboard:focus {
-    z-index: 3
-}
-
-.btn-clipboard {
-    position: relative;
-    z-index: 2;
+    z-index: 3;
 }

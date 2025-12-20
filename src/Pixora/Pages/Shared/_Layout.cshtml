@@ -26,31 +26,59 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
 
-    @await RenderSectionAsync("Head", required: false);
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">
-                    <img class="d-inline-block align-middle" src="~/favicon-32x32.png" alt="@environment.ApplicationName">
+        <nav class="navbar navbar-expand-sm navbar-light bg-white app-navbar">
+            <div class="container-fluid">
+                <a class="navbar-brand d-flex align-items-center" asp-page="/Index">
+                    <img src="~/favicon-32x32.png" class="me-2" width="32" height="32" />
                     @environment.ApplicationName
                 </a>
+                <div class="ms-auto" x-data="userNavbar" x-init="init()" x-cloak>
+                    <template x-if="!isAuthenticated">
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-outline-primary" href="/Account/Login">Sign In</a>
+                            <a class="btn btn-primary" href="/Account/Register">Sign Up</a>
+                        </div>
+                    </template>
+                    <template x-if="isAuthenticated">
+                        <div class="dropdown">
+                            <a class="d-flex align-items-center text-decoration-none dropdown-toggle"
+                               data-bs-toggle="dropdown">
+                                <img :src="profilePhoto" class="rounded-circle me-2" width="32" height="32" />
+                                <span x-text="userName"></span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="/Account/Profile">Profile</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item text-danger" @@click="logout">Logout</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </template>
+                </div>
             </div>
         </nav>
     </header>
-    <div class="container">
+    <div class="container mt-3">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
-    <footer class="border-top footer">
+    <footer class="border-top footer mt-auto">
         <div class="container text-body-secondary">
             <div class="row d-flex flex-wrap justify-content-between align-items-center">
                 <div class="align-items-center col d-flex align-items-center">
                     &copy; @author
-                    <a class="nav-link nav-link-bottom ps-3" title="X" href="https://twitter.com/N1K0232" target="_blank"><i class="bi bi-twitter-x"></i></a>
-                    <a class="nav-link nav-link-bottom ps-3" title="GitHub" href="https://github.com/N1K0232" target="_blank"><i class="bi bi-github"></i></a>
+                    <a class="nav-link nav-link-bottom ps-3" title="Twitter" href="https://twitter.com/N1K0232" target="_blank">
+                        <i class="bi bi-twitter-x"></i>
+                    </a>
+                    <a class="nav-link nav-link-bottom ps-3" title="GitHub" href="https://github.com/N1K0232" target="_blank">
+                        <i class="bi bi-github"></i>
+                    </a>
                 </div>
                 <div class="nav col justify-content-end d-flex align-items-center">
                     <small>@version</small>
@@ -64,6 +92,7 @@
 
     <script src="~/js/app.js" asp-append-version="true"></script>
     <script src="~/js/auth.js" asp-append-version="true"></script>
+    <script src="~/js/userNavbar.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
