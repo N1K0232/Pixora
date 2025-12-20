@@ -4,9 +4,11 @@ using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using MailKit;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.IdentityModel.JsonWebTokens;
 using OperationResults;
 using Pixora.Authentication.Entities;
 using Pixora.BusinessLayer.Generators.Interfaces;
@@ -55,6 +57,20 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
         return Result.Fail(FailureReasons.ClientError, "Invalid or expired token", "Invalid or expired token");
     }
 
+    public async Task<Result> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user is null)
+        {
+            return Result.Fail(FailureReasons.ClientError, "Invalid email address", "Invalid email address");
+        }
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        await notificationPublisher.NotifyAsync(new UserForgotPasswordMessage(request.Email, token), cancellationToken);
+
+        return Result.Ok();
+    }
+
     public async Task<Result<StreamFileContent>> GetQrCodeAsync(string token, CancellationToken cancellationToken)
     {
         ApplicationUser? user;
@@ -69,13 +85,14 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
             return Result.Fail(FailureReasons.ClientError, "Problem occurred while generating the QR Code", "Problem occurred while generating the QR Code");
         }
 
-        if (user is null || (await userManager.GetAuthenticatorKeyAsync(user)).HasValue())
+        var stream = await qrCodeGenerator.GenerateAsync(user, cancellationToken);
+        if (stream is null)
         {
-            return Result.Fail(FailureReasons.ClientError, "Problem occurred while generating the QR Code", "Problem occurred while generating the QR Code");
+            return Result.Fail(FailureReasons.ClientError, "Error occurred while generating the qr code");
         }
 
-        var qrCodeStream = await qrCodeGenerator.GenerateAsync(user, cancellationToken);
-        return new StreamFileContent(qrCodeStream, MediaTypeNames.Image.Png);
+        var streamFileContent = new StreamFileContent(stream, MediaTypeNames.Image.Png);
+        return streamFileContent;
     }
 
     public async Task<Result<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -152,6 +169,35 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
         }
     }
 
+    public async Task<Result> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        ApplicationUser? user;
+
+        try
+        {
+            var userId = await timeLimitedDataProtectionService.UnprotectAsync(request.Secret, cancellationToken);
+            user = await userManager.FindByIdAsync(userId);
+        }
+        catch
+        {
+            return Result.Fail(FailureReasons.ClientError);
+        }
+
+        if (user is null)
+        {
+            return Result.Fail(FailureReasons.ClientError, "An error occurred", "An error occurred");
+        }
+
+        var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        if (result.Succeeded)
+        {
+            await notificationPublisher.NotifyAsync(new UserResetPasswordMessage(user.Email!), cancellationToken);
+            return Result.Ok();
+        }
+
+        return Result.Fail(FailureReasons.ClientError, "An error occurred", "An error occurred");
+    }
+
     public async Task<Result<AuthResponse>> ValidateTwoFactorAsync(TwoFactorValidationRequest request, CancellationToken cancellationToken)
     {
         ApplicationUser? user;
@@ -182,26 +228,20 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
 
     private async Task<AuthResponse> CreateResponseAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
-        await userManager.UpdateSecurityStampAsync(user);
+        var claims = await GetOrCreateClaimsAsync(user, cancellationToken);
         var userRoles = await userManager.GetRolesAsync(user);
+        await userManager.UpdateSecurityStampAsync(user);
 
         var hostName = Dns.GetHostName();
         var addresses = await Dns.GetHostAddressesAsync(hostName, cancellationToken);
 
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email!),
-            new Claim(ClaimTypes.GivenName, user.FirstName),
-            new Claim(ClaimTypes.Surname, user.LastName),
-            new Claim(ClaimTypes.SerialNumber, user.SecurityStamp ?? string.Empty),
-            new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty),
-            new Claim(ClaimTypes.Dns, hostName)
-        }
-        .Union(userRoles.Select(role => new Claim(ClaimTypes.Role, role)))
-        .Union(addresses.Select(address => new Claim(ClaimTypes.Dns, address.ToString())));
+        claims.Add(new Claim(ClaimTypes.Dns, hostName));
+        claims.Add(new Claim(ClaimTypes.SerialNumber, user.SecurityStamp ?? string.Empty));
 
-        var accessToken = await jwtBearerService.CreateTokenAsync(user.UserName!, claims.ToList());
+        claims.Union(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.Union(addresses.Select(address => new Claim(ClaimTypes.Dns, address.ToString())));
+
+        var accessToken = await jwtBearerService.CreateTokenAsync(user.UserName!, claims);
         var refreshToken = await SaveRefreshTokenAsync(user, cancellationToken);
 
         user.RefreshToken = refreshToken;
@@ -209,6 +249,33 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
 
         await userManager.UpdateAsync(user);
         return new AuthResponse(accessToken, refreshToken);
+    }
+
+    private async Task<IList<Claim>> GetOrCreateClaimsAsync(ApplicationUser user, CancellationToken cancellationToken)
+    {
+        var claims = await userManager.GetClaimsAsync(user);
+        if (claims is null || claims.Count == 0)
+        {
+            claims =
+            [
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.GivenName, user.FirstName),
+                new Claim(JwtRegisteredClaimNames.GivenName, user.FirstName),
+                new Claim(ClaimTypes.Surname, user.LastName),
+                new Claim(JwtRegisteredClaimNames.FamilyName, user.LastName),
+                new Claim(ClaimTypes.Email, user.Email!)
+            ];
+
+            if (user.PhoneNumber.HasValue() && user.PhoneNumberConfirmed)
+            {
+                claims.Add(new Claim(ClaimTypes.MobilePhone, user.PhoneNumber));
+            }
+
+            await userManager.AddClaimsAsync(user, claims);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return claims;
     }
 
     private async Task<string> SaveRefreshTokenAsync(ApplicationUser user, CancellationToken cancellationToken)

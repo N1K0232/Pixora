@@ -10,6 +10,8 @@ public abstract class AuthenticationDbContext(DbContextOptions options) : Identi
 {
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
+    public DbSet<IpAddressBan> IpAddressBans { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -45,6 +47,16 @@ public abstract class AuthenticationDbContext(DbContextOptions options) : Identi
 
             b.Property(k => k.FriendlyName).HasColumnType("NVARCHAR(MAX)").IsRequired(false);
             b.Property(k => k.Xml).HasColumnType("NVARCHAR(MAX)").IsRequired(false);
+        });
+
+        builder.Entity<IpAddressBan>(b =>
+        {
+            b.ToTable("IpAddressBans");
+            b.HasKey(b => b.Id);
+            b.Property(b => b.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
+
+            b.Property(b => b.Value).HasMaxLength(255).IsRequired();
+            b.Property(b => b.Reason).HasMaxLength(4000).IsRequired(false);
         });
     }
 }

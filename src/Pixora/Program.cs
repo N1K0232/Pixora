@@ -8,12 +8,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.EntityFrameworkCore;
 using MinimalHelpers.Routing;
 using MinimalHelpers.Validation;
 using OperationResults.AspNetCore.Http;
-using Pixora.Authentication.Claims;
+using Pixora.Authentication;
 using Pixora.Authentication.Entities;
 using Pixora.BusinessLayer.Clients;
 using Pixora.BusinessLayer.Clients.Interfaces;
@@ -27,6 +26,7 @@ using Pixora.BusinessLayer.Validation;
 using Pixora.DataAccessLayer;
 using Pixora.Extensions;
 using Pixora.Logging;
+using Pixora.Middlewares;
 using Pixora.Requirements;
 using Pixora.StorageProviders.Extensions;
 using Pixora.Swagger;
@@ -116,6 +116,7 @@ builder.Services.ConfigureValidation(options =>
 });
 
 builder.Services.AddSqlServer<ApplicationDbContext>(builder.Configuration.GetConnectionString("SqlConnection"));
+builder.Services.AddScoped<AuthenticationDbContext>(services => services.GetRequiredService<ApplicationDbContext>());
 builder.Services.AddScoped<IApplicationDbContext>(services => services.GetRequiredService<ApplicationDbContext>());
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -191,6 +192,7 @@ var app = builder.Build();
 app.Environment.ApplicationName = settings.ApplicationName;
 
 app.UseHttpsRedirection();
+app.UseMiddleware<IpBanMiddleware>();
 
 app.UseWhen(context => context.IsWebRequest(), builder =>
 {
