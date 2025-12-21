@@ -22,14 +22,14 @@ namespace Pixora.BusinessLayer.Resources {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Messages {
+    internal class EmailSubjects {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Messages() {
+        internal EmailSubjects() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace Pixora.BusinessLayer.Resources {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Pixora.BusinessLayer.Resources.Messages", typeof(Messages).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Pixora.BusinessLayer.Resources.EmailSubjects", typeof(EmailSubjects).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,20 +61,7 @@ namespace Pixora.BusinessLayer.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Hello,
-        ///
-        ///Thank you for registering an account with us.
-        ///
-        ///To complete your registration, please confirm your email address by clicking the link below:
-        ///
-        ///{0}
-        ///
-        ///If you did not create this account, you can safely ignore this email.
-        ///
-        ///This link is valid for a limited time. Once confirmed, you will be able to sign in and start using your account.
-        ///
-        ///Best regards,
-        ///The Support Team.
+        ///   Looks up a localized string similar to Confirm your email address.
         /// </summary>
         internal static string ConfirmEmail {
             get {
@@ -83,18 +70,7 @@ namespace Pixora.BusinessLayer.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Hello,
-        ///
-        ///We’re happy to let you know that your email address has been successfully confirmed.
-        ///
-        ///Your account is now fully activated, and you can sign in and start using all available features.
-        ///
-        ///If you did not perform this action or believe this was done by mistake, please contact our support team immediately.
-        ///
-        ///Thank you for joining us, and welcome aboard!
-        ///
-        ///Best regards,
-        ///The Support Team.
+        ///   Looks up a localized string similar to Your email has been successfully confirmed.
         /// </summary>
         internal static string EmailConfirmed {
             get {
@@ -103,20 +79,7 @@ namespace Pixora.BusinessLayer.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Hello,
-        ///
-        ///We received a request to reset the password for your account.
-        ///
-        ///To reset your password, please click the link below:
-        ///
-        ///{0}
-        ///
-        ///This link is valid for a limited time. If you did not request a password reset, you can safely ignore this email — your password will not be changed.
-        ///
-        ///For security reasons, please do not share this link with anyone.
-        ///
-        ///Best regards,
-        ///The Support Team.
+        ///   Looks up a localized string similar to Reset your password.
         /// </summary>
         internal static string ForgotPassword {
             get {
@@ -125,25 +88,7 @@ namespace Pixora.BusinessLayer.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to If an account with that email exists, a password reset link has been sent..
-        /// </summary>
-        internal static string ForgotPasswordGenericMessage {
-            get {
-                return ResourceManager.GetString("ForgotPasswordGenericMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Hello,
-        ///
-        ///This is a confirmation that your account password has been successfully reset.
-        ///
-        ///You can now sign in using your new password.
-        ///
-        ///If you did not perform this action or believe your account may have been compromised, please contact our support team immediately.
-        ///
-        ///Best regards,
-        ///The Support Team.
+        ///   Looks up a localized string similar to Your password has been successfully reset.
         /// </summary>
         internal static string PasswordResetSuccessful {
             get {

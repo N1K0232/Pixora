@@ -48,7 +48,8 @@ public class UserEndpoints : IEndpointRouteHandlerBuilder
             FirstName = principal.GetFirstName(),
             LastName = principal.GetLastName(),
             Email = principal.GetEmail(),
-            UserName = principal.Identity?.Name ?? string.Empty
+            UserName = principal.Identity?.Name ?? string.Empty,
+            Roles = principal.GetUserRoles()
         };
 
         return TypedResults.Ok(user);

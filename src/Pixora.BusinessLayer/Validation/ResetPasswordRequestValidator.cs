@@ -4,15 +4,13 @@ using Pixora.Shared.Models.Requests;
 
 namespace Pixora.BusinessLayer.Validation;
 
-public partial class RegisterRequestValidator : AbstractValidator<RegisterRequest>
+public partial class ResetPasswordRequestValidator : AbstractValidator<ResetPasswordRequest>
 {
-    public RegisterRequestValidator()
+    public ResetPasswordRequestValidator()
     {
-        RuleFor(r => r.FirstName).NotEmpty();
-        RuleFor(r => r.LastName).NotEmpty();
-        RuleFor(r => r.Email).NotEmpty().EmailAddress();
-        RuleFor(r => r.UserName).NotEmpty();
-        RuleFor(r => r.Password)
+        RuleFor(p => p.Secret).NotEmpty();
+        RuleFor(p => p.Token).NotEmpty();
+        RuleFor(p => p.NewPassword)
             .NotEmpty()
             .MinimumLength(8)
             .Matches(IsCapital()).WithMessage("Password must contain at least one capital letter")
@@ -20,7 +18,7 @@ public partial class RegisterRequestValidator : AbstractValidator<RegisterReques
             .Matches(IsNumber()).WithMessage("Password must contain at least one number")
             .Matches(IsSpecialChar()).WithMessage("Password must contain at least one special character");
 
-        RuleFor(r => r.ConfirmPassword).NotEmpty().Equal(r => r.Password);
+        RuleFor(p => p.ConfirmPassword).NotEmpty().Equal(p => p.NewPassword);
     }
 
     [GeneratedRegex("[A-Z]")]

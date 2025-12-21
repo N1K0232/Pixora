@@ -1,4 +1,5 @@
-﻿function uuid() {
+﻿function uuid()
+{
     const now = BigInt(Date.now());
     const timestamp = now & BigInt("0xffffffffffff");
 
@@ -19,7 +20,8 @@
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-function dataURIToBlob(dataURI) {
+function dataURIToBlob(dataURI)
+{
     const splitDataURI = dataURI.split(',')
     const byteString = splitDataURI[0].indexOf('base64') >= 0 ? atob(splitDataURI[1]) : decodeURI(splitDataURI[1])
     const mimeString = splitDataURI[0].split(':')[1].split(';')[0]
@@ -31,7 +33,8 @@ function dataURIToBlob(dataURI) {
     return new Blob([ia], { type: mimeString })
 }
 
-function GetErrorMessage(statusCode, content) {
+function GetErrorMessage(statusCode, content)
+{
     if (statusCode >= 200 && statusCode <= 299) {
         return null;
     }
@@ -43,19 +46,19 @@ function GetErrorMessage(statusCode, content) {
     return content.detail ?? content.title ?? content;
 }
 
-function sleep(time) {
+function sleep(time)
+{
     return new Promise((resolve) => {
         setTimeout(resolve, time);
     });
 }
 
-async function copyToClipboard(element, text) {
-
+async function copyToClipboard(element, text)
+{
     let tooltip = bootstrap.Tooltip.getInstance(element);
     tooltip.hide();
 
     navigator.clipboard.writeText(text);
-
     element.setAttribute('data-bs-title', 'Copied!');
 
     tooltip = new bootstrap.Tooltip(element);
@@ -64,23 +67,6 @@ async function copyToClipboard(element, text) {
     await sleep(3000);
     tooltip.hide();
 
-    // Resets the tooltip title
     element.setAttribute('data-bs-title', 'Copy to clipboard');
     new bootstrap.Tooltip(element);
-}
-
-function setAuthCookie(name, accessToken, refreshToken, isPersistent) {
-    window.localStorage.setItem('access_token', accessToken);
-    window.localStorage.setItem('refresh_token', refreshToken);
-
-    let cookie = `${name}=${accessToken}; path=/; Secure; SameSite=Strict`;
-
-    if (isPersistent) {
-        const expirationDays = 7;
-        const date = new Date();
-        date.setTime(date.getTime() + expirationDays * 24 * 60 * 60 * 1000);
-        cookie += `; Expires=${date.toUTCString()}`;
-    }
-
-    document.cookie = cookie;
 }

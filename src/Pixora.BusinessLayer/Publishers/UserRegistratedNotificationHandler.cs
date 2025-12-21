@@ -32,15 +32,15 @@ public class UserRegistratedNotificationHandler(UserManager<ApplicationUser> use
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
             var httpContext = httpContextAccessor.HttpContext!;
-            var endpoint = linkGenerator.GetUriByName(httpContext, "confirm", new { secret = encodedSecret, token = encodedToken }, httpContext.Request.Scheme, httpContext.Request.Host);
+            var page = linkGenerator.GetUriByPage(httpContext, "/Account/UserConfirmEmail", values: new { secret = encodedSecret, token = encodedToken });
 
             var emailMessage = new EmailMessage
             {
                 SenderEmail = appSettings.SenderEmail,
                 SenderName = appSettings.SenderName,
                 To = [message.Email],
-                Subject = "Confirm your email",
-                TextContent = string.Format(Messages.ConfirmEmail, endpoint)
+                Subject = EmailSubjects.ConfirmEmail,
+                TextContent = string.Format(Messages.ConfirmEmail, page)
             };
 
             await emailClient.SendAsync(emailMessage, cancellationToken);
@@ -59,7 +59,7 @@ public class UserRegistratedNotificationHandler(UserManager<ApplicationUser> use
                 SenderEmail = appSettings.SenderEmail,
                 SenderName = appSettings.SenderName,
                 To = [message.Email],
-                Subject = "Account verified",
+                Subject = EmailSubjects.EmailConfirmed,
                 TextContent = Messages.EmailConfirmed
             };
 

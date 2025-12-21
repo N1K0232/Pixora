@@ -5,39 +5,65 @@
         profilePhoto: null,
         isBusy: false,
 
-        async init()
+        init: async function ()
         {
             this.isBusy = true;
-            try {
-                await this.loadUser();
-                if (this.isAuthenticated) {
-                    await this.loadProfilePhoto();
+            try
+            {
+                const accessToken = window.localStorage.getItem('access_token');
+                await this.loadUser(accessToken);
+
+                if (this.isAuthenticated)
+                {
+                    await this.loadProfilePhoto(accessToken);
                 }
-            } finally {
+            }
+            catch (error)
+            {
+                alert(error.message);
+            }
+            finally
+            {
                 this.isBusy = false;
             }
         },
 
-        async loadUser()
+        loadUser: async function (accessToken)
         {
             const response = await fetch('/api/me', {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`,
+                    "Accept-Language": "en-US"
+                },
                 credentials: 'include'
             });
 
-            if (!response.ok) return;
+            if (!response.ok)
+            {
+                return;
+            }
 
             const content = await response.json();
             this.userName = content.userName;
             this.isAuthenticated = true;
         },
 
-        async loadProfilePhoto()
+        loadProfilePhoto: async function (accessToken)
         {
             const response = await fetch('/api/me/profilephoto', {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`,
+                    "Accept-Language": "en-US"
+                },
                 credentials: 'include'
             });
 
-            if (!response.ok) return;
+            if (!response.ok)
+            {
+                return;
+            }
 
             const blob = await response.blob();
             this.profilePhoto = URL.createObjectURL(blob);

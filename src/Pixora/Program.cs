@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using FluentValidation;
+using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Net.Http.Headers;
 using MinimalHelpers.Routing;
 using MinimalHelpers.Validation;
 using OperationResults.AspNetCore.Http;
@@ -42,6 +44,7 @@ using TinyHelpers.Extensions;
 using TinyHelpers.Json.Serialization;
 using ResultErrorResponseFormat = OperationResults.AspNetCore.Http.ErrorResponseFormat;
 using ValidationErrorResponseFormat = MinimalHelpers.Validation.ErrorResponseFormat;
+using CookieSameSiteMode = Microsoft.AspNetCore.Http.SameSiteMode;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.local.json", true, true);
@@ -78,6 +81,10 @@ if (swagger.IsEnabled)
 
         options.AddSimpleAuthentication(builder.Configuration);
         options.RemoveServerList();
+    })
+    .AddFluentValidationRulesToSwagger(options =>
+    {
+        options.SetNotNullableIfMinLengthGreaterThenZero = true;
     });
 }
 
@@ -134,7 +141,7 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 .AddDefaultTokenProviders();
 
 builder.Services.AddDataProtection(settings.ApplicationName).PersistKeysToDbContext<ApplicationDbContext>();
-//builder.Services.AddScoped<IClaimsTransformation, UserClaimsTransformation>();
+builder.Services.AddScoped<IClaimGenerator, UserClaimGenerator>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -144,12 +151,12 @@ builder.Services.AddAuthentication(options =>
 .AddSimpleAuthentication(builder.Configuration, addAuthorizationServices: false)
 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
-    options.LoginPath = "/Accounts/Login";
-    options.LogoutPath = "/Accounts/Logout";
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
     options.ExpireTimeSpan = TimeSpan.FromHours(1);
     options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SameSite = CookieSameSiteMode.Strict;
 });
 
 builder.Services.AddScoped<IAuthorizationHandler, UserActiveHandler>();
@@ -159,6 +166,12 @@ builder.Services.AddAuthorization(options =>
     authorizationPolicyBuilder.Requirements.Add(new UserActiveRequirement());
 
     options.DefaultPolicy = authorizationPolicyBuilder.Build();
+
+    options.AddPolicy(RoleNames.Administrator, policy =>
+    {
+        policy.RequireRole(RoleNames.Administrator, RoleNames.PowerUser);
+        policy.Requirements.Add(new UserActiveRequirement());
+    });
 });
 
 var azureStorageConnectionString = builder.Configuration.GetConnectionString("AzureStorageConnection");
@@ -187,6 +200,18 @@ builder.Services.Scan(scan => scan.FromAssemblyOf<IdentityService>()
     .AddClasses(classes => classes.InNamespaceOf<IdentityService>())
     .AsImplementedInterfaces()
     .WithScopedLifetime());
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder.AllowAnyHeader()
+            .AllowAnyMethod()
+            .SetIsOriginAllowed(_ => true)
+            .AllowCredentials()
+            .WithExposedHeaders(HeaderNames.ContentDisposition);
+    });
+});
 
 var app = builder.Build();
 app.Environment.ApplicationName = settings.ApplicationName;
@@ -226,6 +251,7 @@ if (swagger.IsEnabled)
 }
 
 app.UseRouting();
+app.UseCors();
 app.UseRequestLocalization();
 
 app.UseWhen(context => context.IsApiRequest(), builder =>

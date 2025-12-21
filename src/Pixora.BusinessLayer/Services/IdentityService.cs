@@ -1,17 +1,16 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using System.Net.Sockets;
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
-using MailKit;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.IdentityModel.JsonWebTokens;
 using OperationResults;
 using Pixora.Authentication.Entities;
 using Pixora.BusinessLayer.Generators.Interfaces;
+using Pixora.BusinessLayer.Resources;
 using Pixora.BusinessLayer.Services.Interfaces;
 using Pixora.DataProtectionLayer;
 using Pixora.Shared.Models;
@@ -19,11 +18,10 @@ using Pixora.Shared.Models.Requests;
 using Pixora.Shared.Notifications;
 using SimpleAuthentication.JwtBearer;
 using SimpleTransit;
-using TinyHelpers.Extensions;
 
 namespace Pixora.BusinessLayer.Services;
 
-public class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, TimeProvider timeProvider, RandomNumberGenerator generator, IDataProtectionService dataProtectionService, ITimeLimitedDataProtectionService timeLimitedDataProtectionService, IQrCodeGenerator qrCodeGenerator, IJwtBearerService jwtBearerService, INotificationPublisher notificationPublisher) : IIdentityService
+public class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, TimeProvider timeProvider, RandomNumberGenerator generator, IDataProtectionService dataProtectionService, ITimeLimitedDataProtectionService timeLimitedDataProtectionService, IQrCodeGenerator qrCodeGenerator, IJwtBearerService jwtBearerService, INotificationPublisher notificationPublisher, IClaimGenerator claimGenerator) : IIdentityService
 {
     public async Task<Result> ConfirmEmailAsync(string secret, string token, CancellationToken cancellationToken)
     {
@@ -57,18 +55,17 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
         return Result.Fail(FailureReasons.ClientError, "Invalid or expired token", "Invalid or expired token");
     }
 
-    public async Task<Result> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    public async Task<Result<ForgotPasswordResponse>> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
-        var user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null)
+        try
         {
-            return Result.Fail(FailureReasons.ClientError, "Invalid email address", "Invalid email address");
+            await notificationPublisher.NotifyAsync(new UserForgotPasswordMessage(request.Email), cancellationToken);
+            return new ForgotPasswordResponse(Messages.ForgotPasswordGenericMessage);
         }
-
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        await notificationPublisher.NotifyAsync(new UserForgotPasswordMessage(request.Email, token), cancellationToken);
-
-        return Result.Ok();
+        catch (SocketException ex)
+        {
+            return Result.Fail(FailureReasons.ClientError, "Email not sent", ex.Message);
+        }
     }
 
     public async Task<Result<StreamFileContent>> GetQrCodeAsync(string token, CancellationToken cancellationToken)
@@ -124,6 +121,14 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
         return await CreateResponseAsync(user, cancellationToken);
     }
 
+    public async Task<Result> LogoutAsync(CancellationToken cancellationToken)
+    {
+        await signInManager.SignOutAsync();
+        await signInManager.Context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        return Result.Ok();
+    }
+
     public async Task<Result<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken)
     {
         var validationResult = await jwtBearerService.TryValidateTokenAsync(request.AccessToken, false);
@@ -173,9 +178,12 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
     {
         ApplicationUser? user;
 
+        var decodedSecret = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Secret));
+        var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+
         try
         {
-            var userId = await timeLimitedDataProtectionService.UnprotectAsync(request.Secret, cancellationToken);
+            var userId = await timeLimitedDataProtectionService.UnprotectAsync(decodedSecret, cancellationToken);
             user = await userManager.FindByIdAsync(userId);
         }
         catch
@@ -188,7 +196,7 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
             return Result.Fail(FailureReasons.ClientError, "An error occurred", "An error occurred");
         }
 
-        var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        var result = await userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
         if (result.Succeeded)
         {
             await notificationPublisher.NotifyAsync(new UserResetPasswordMessage(user.Email!), cancellationToken);
@@ -228,54 +236,11 @@ public class IdentityService(UserManager<ApplicationUser> userManager, SignInMan
 
     private async Task<AuthResponse> CreateResponseAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
-        var claims = await GetOrCreateClaimsAsync(user, cancellationToken);
-        var userRoles = await userManager.GetRolesAsync(user);
-        await userManager.UpdateSecurityStampAsync(user);
-
-        var hostName = Dns.GetHostName();
-        var addresses = await Dns.GetHostAddressesAsync(hostName, cancellationToken);
-
-        claims.Add(new Claim(ClaimTypes.Dns, hostName));
-        claims.Add(new Claim(ClaimTypes.SerialNumber, user.SecurityStamp ?? string.Empty));
-
-        claims.Union(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
-        claims.Union(addresses.Select(address => new Claim(ClaimTypes.Dns, address.ToString())));
-
+        var claims = await claimGenerator.GetOrCreateAsync(user, cancellationToken);
         var accessToken = await jwtBearerService.CreateTokenAsync(user.UserName!, claims);
         var refreshToken = await SaveRefreshTokenAsync(user, cancellationToken);
 
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpirationDate = timeProvider.GetUtcNow().AddDays(10);
-
-        await userManager.UpdateAsync(user);
         return new AuthResponse(accessToken, refreshToken);
-    }
-
-    private async Task<IList<Claim>> GetOrCreateClaimsAsync(ApplicationUser user, CancellationToken cancellationToken)
-    {
-        var claims = await userManager.GetClaimsAsync(user);
-        if (claims is null || claims.Count == 0)
-        {
-            claims =
-            [
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.GivenName, user.FirstName),
-                new Claim(JwtRegisteredClaimNames.GivenName, user.FirstName),
-                new Claim(ClaimTypes.Surname, user.LastName),
-                new Claim(JwtRegisteredClaimNames.FamilyName, user.LastName),
-                new Claim(ClaimTypes.Email, user.Email!)
-            ];
-
-            if (user.PhoneNumber.HasValue() && user.PhoneNumberConfirmed)
-            {
-                claims.Add(new Claim(ClaimTypes.MobilePhone, user.PhoneNumber));
-            }
-
-            await userManager.AddClaimsAsync(user, claims);
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        return claims;
     }
 
     private async Task<string> SaveRefreshTokenAsync(ApplicationUser user, CancellationToken cancellationToken)

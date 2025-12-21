@@ -1,0 +1,12 @@
+﻿@page
+
+@model ValidateTwoFactorCodeModel
+
+@section Scripts
+{
+    <script>
+        document.addEventListener("alpine:init", () => {
+            auth('@Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName');
+        });
+    </script>
+}

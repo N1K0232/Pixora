@@ -117,69 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="ConfirmEmail" xml:space="preserve">
-    <value>Hello,
-
-Thank you for registering an account with us.
-
-To complete your registration, please confirm your email address by clicking the link below:
-
-{0}
-
-If you did not create this account, you can safely ignore this email.
-
-This link is valid for a limited time. Once confirmed, you will be able to sign in and start using your account.
-
-Best regards,
-The Support Team</value>
-    <comment>Used when the user registrate to the service</comment>
-  </data>
-  <data name="EmailConfirmed" xml:space="preserve">
-    <value>Hello,
-
-We’re happy to let you know that your email address has been successfully confirmed.
-
-Your account is now fully activated, and you can sign in and start using all available features.
-
-If you did not perform this action or believe this was done by mistake, please contact our support team immediately.
-
-Thank you for joining us, and welcome aboard!
-
-Best regards,
-The Support Team</value>
-    <comment>Used when the user confirms his account</comment>
-  </data>
-  <data name="ForgotPassword" xml:space="preserve">
-    <value>Hello,
-
-We received a request to reset the password for your account.
-
-To reset your password, please click the link below:
-
-{0}
-
-This link is valid for a limited time. If you did not request a password reset, you can safely ignore this email — your password will not be changed.
-
-For security reasons, please do not share this link with anyone.
-
-Best regards,
-The Support Team</value>
-    <comment>Used when the user requests for a password reset</comment>
-  </data>
-  <data name="ForgotPasswordGenericMessage" xml:space="preserve">
-    <value>If an account with that email exists, a password reset link has been sent.</value>
-  </data>
-  <data name="PasswordResetSuccessful" xml:space="preserve">
-    <value>Hello,
-
-This is a confirmation that your account password has been successfully reset.
-
-You can now sign in using your new password.
-
-If you did not perform this action or believe your account may have been compromised, please contact our support team immediately.
-
-Best regards,
-The Support Team</value>
-    <comment>Used when the user successfully resets the password</comment>
+  <data name="QRCodeUri" xml:space="preserve">
+    <value>otpauth://totp/{0}:{1}?secret={2}&amp;issuer={3}</value>
   </data>
 </root>

@@ -24,4 +24,7 @@ public static class ClaimsExtensions
 
     public static string GetEmail(this ClaimsPrincipal user)
         => user.GetClaimValue(ClaimTypes.Email) ?? string.Empty;
+
+    public static IEnumerable<string?> GetUserRoles(this ClaimsPrincipal user)
+        => user.GetClaimValues<string>(ClaimTypes.Role);
 }

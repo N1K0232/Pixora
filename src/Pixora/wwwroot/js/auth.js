@@ -6,12 +6,66 @@
         email: '',
         userName: '',
         password: '',
+        confirmPassword: '',
         qrCodeSrc: null,
         twoFactorCode: '',
         enableNotifications: false,
         isPersistent: false,
         isBusy: false,
-        errorMessage: '',
+        forgotPasswordMessage: null,
+        errorMessage: null,
+
+        confirmEmail: async function (secret, token)
+        {
+            this.isBusy = true;
+
+            try
+            {
+                const response = await confirmEmailAsync(secret, token, language);
+                if (response.status === 204)
+                {
+                    window.location.href = '/';
+                }
+                else
+                {
+                    const content = await response.json();
+                    this.errorMessage = GetErrorMessage(response.status, text);
+                }
+            }
+            catch (error)
+            {
+                this.errorMessage = error.message;
+            }
+            finally
+            {
+                this.isBusy = false;
+            }
+        },
+
+        forgotPassword: async function ()
+        {
+            this.isBusy = true;
+
+            try
+            {
+                const response = await forgotPasswordAsync(this.email, language);
+                const content = await response.json();
+
+                this.errorMessage = GetErrorMessage(response.status, content);
+                if (this.errorMessage == null)
+                {
+                    this.forgotPasswordMessage = content.message;
+                }
+            }
+            catch (error)
+            {
+                this.errorMessage = error.message;
+            }
+            finally
+            {
+                this.isBusy = false;
+            }
+        },
 
         getQrCode: async function ()
         {
@@ -55,14 +109,45 @@
                 this.errorMessage = GetErrorMessage(response.status, content);
                 if (this.errorMessage == null)
                 {
-                    if (content.accessToken != null && content.refreshToken != null)
-                    {
-                        setAuthCookie('jwtBearer', content.accessToken, content.refreshToken, this.isPersistent);
-                    }
-                    else
+                    if (content.twoFactorToken != null)
                     {
                         window.localStorage.setItem('twoFactorToken', content.twoFactorToken);
                     }
+                    else
+                    {
+                        window.localStorage.setItem('access_token', content.accessToken);
+                        window.localStorage.setItem('refresh_token', content.refreshToken);
+                        window.location.href = '/';
+                    }
+                }
+            }
+            catch (error)
+            {
+                this.errorMessage = error.message;
+            }
+            finally
+            {
+                this.isBusy = false;
+            }
+        },
+
+        logout: async function ()
+        {
+            this.isBusy = true;
+
+            try
+            {
+                const response = await logoutAsync(language);
+                if (response.status === 204)
+                {
+                    window.localStorage.removeItem('access_token');
+                    window.localStorage.removeItem('refresh_token');
+                    window.location.href = '/';
+                }
+                else
+                {
+                    const content = await response.json();
+                    this.errorMessage = GetErrorMessage(response.status, content);
                 }
             }
             catch (error)
@@ -90,7 +175,7 @@
                 this.errorMessage = GetErrorMessage(response.status, content);
                 if (this.errorMessage == null)
                 {
-                    setAuthCookie('jwtBearer', content.accessToken, content.refreshToken, false);
+                    window.location.href = '/';
                 }
             }
             catch (error)
@@ -109,10 +194,37 @@
 
             try
             {
-                const response = await registerAsync(this.firstName, this.lastName, this.email, this.userName, this.password, this.enableNotifications, language);
+                const response = await registerAsync(this.firstName, this.lastName, this.email, this.userName, this.password, this.confirmPassword, this.enableNotifications, language);
                 const content = await response.json();
 
                 this.errorMessage = GetErrorMessage(response.status, content);
+            }
+            catch (error)
+            {
+                this.errorMessage = error.message;
+            }
+            finally
+            {
+                this.isBusy = false;
+            }
+        },
+
+        resetPassword: async function (secret, token)
+        {
+            this.isBusy = true;
+
+            try
+            {
+                const response = await resetPasswordAsync(secret, token, this.password, this.confirmPassword, language);
+                if (response.status === 204)
+                {
+                    window.location.href = '/';
+                }
+                else
+                {
+                    const content = await response.json();
+                    this.errorMessage = GetErrorMessage(response.status, content);
+                }
             }
             catch (error)
             {
@@ -139,7 +251,7 @@
                 if (this.errorMessage == null)
                 {
                     window.localStorage.removeItem('twoFactorToken');
-                    setAuthCookie('jwtBearer', content.accessToken, content.refreshToken, false);
+                    window.location.href = '/';
                 }
             }
             catch (error)
@@ -152,6 +264,34 @@
             }
         }
     }));
+}
+
+async function confirmEmailAsync(secret, token, language)
+{
+    const response = await fetch(`/api/auth/confirm?secret=${secret}&token=${token}`, {
+        method: "GET",
+        headers: {
+            "Accept-Language": language
+        }
+    });
+
+    return response;
+}
+
+async function forgotPasswordAsync(email, language)
+{
+    const request = { email: email };
+
+    const response = await fetch('/api/auth/forgotpassword', {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": language
+        },
+        body: JSON.stringify(request)
+    });
+
+    return response;
 }
 
 async function getQrCodeAsync(token, language)
@@ -185,6 +325,20 @@ async function loginAsync(email, password, language)
     return response;
 }
 
+async function logoutAsync(language)
+{
+    const accessToken = window.localStorage.getItem('access_token');
+    const response = await fetch('/api/auth/logout', {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept-Language": language
+        }
+    });
+
+    return response;
+}
+
 async function refreshTokenAsync(accessToken, refreshToken, language)
 {
     const request = {
@@ -204,7 +358,7 @@ async function refreshTokenAsync(accessToken, refreshToken, language)
     return response;
 }
 
-async function registerAsync(firstName, lastName, email, userName, password, enableNotifications, language)
+async function registerAsync(firstName, lastName, email, userName, password, confirmPassword, enableNotifications, language)
 {
     const request = {
         firstName: firstName,
@@ -212,10 +366,32 @@ async function registerAsync(firstName, lastName, email, userName, password, ena
         email: email,
         userName: userName,
         password: password,
+        confirmPassword: confirmPassword,
         enableNotifications: enableNotifications
     };
 
     const response = await fetch('/api/auth/register', {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": language
+        },
+        body: JSON.stringify(request)
+    });
+
+    return response;
+}
+
+async function resetPasswordAsync(secret, token, newPassword, confirmPassword, language)
+{
+    const request = {
+        secret: secret,
+        token: token,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword
+    };
+
+    const response = await fetch('/api/auth/resetpassword', {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

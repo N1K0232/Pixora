@@ -19,6 +19,12 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
             .Produces(StatusCodes.Status400BadRequest)
             .WithName("confirm");
 
+        authApiGroup.MapPost("forgotpassword", ForgotPasswordAsync)
+            .Produces<ForgotPasswordResponse>()
+            .Produces(StatusCodes.Status400BadRequest)
+            .WithValidation<ForgotPasswordRequest>()
+            .WithName("forgotpassword");
+
         authApiGroup.MapGet("qrcode", GetQrCodeAsync)
             .Produces(StatusCodes.Status200OK, contentType: MediaTypeNames.Image.Png)
             .Produces(StatusCodes.Status400BadRequest)
@@ -29,6 +35,11 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
             .Produces(StatusCodes.Status400BadRequest)
             .WithValidation<LoginRequest>()
             .WithName("login");
+
+        authApiGroup.MapPost("logout", LogoutAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .RequireAuthorization()
+            .WithName("logout");
 
         authApiGroup.MapPost("register", RegisterAsync)
             .Produces(StatusCodes.Status201Created)
@@ -42,6 +53,12 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
             .WithValidation<RefreshTokenRequest>()
             .WithName("refresh");
 
+        authApiGroup.MapPost("resetpassword", ResetPasswordAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status400BadRequest)
+            .WithValidation<ResetPasswordRequest>()
+            .WithName("resetpassword");
+
         authApiGroup.MapPost("validate2fa", ValidateTwoFactorAsync)
             .Produces<AuthResponse>()
             .Produces(StatusCodes.Status400BadRequest)
@@ -52,6 +69,14 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
     private static async Task<IResult> ConfirmEmailAsync(string secret, string token, IIdentityService identityService, HttpContext httpContext)
     {
         var result = await identityService.ConfirmEmailAsync(secret, token, httpContext.RequestAborted);
+
+        var response = httpContext.CreateResponse(result);
+        return response;
+    }
+
+    private static async Task<IResult> ForgotPasswordAsync(ForgotPasswordRequest request, IIdentityService identityService, HttpContext httpContext)
+    {
+        var result = await identityService.ForgotPasswordAsync(request, httpContext.RequestAborted);
 
         var response = httpContext.CreateResponse(result);
         return response;
@@ -73,6 +98,14 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
         return response;
     }
 
+    private static async Task<IResult> LogoutAsync(IIdentityService identityService, HttpContext httpContext)
+    {
+        var result = await identityService.LogoutAsync(httpContext.RequestAborted);
+
+        var response = httpContext.CreateResponse(result);
+        return response;
+    }
+
     private static async Task<IResult> RegisterAsync(RegisterRequest request, IIdentityService identityService, HttpContext httpContext)
     {
         var result = await identityService.RegisterAsync(request, httpContext.RequestAborted);
@@ -84,6 +117,14 @@ public class AuthEndpoints : IEndpointRouteHandlerBuilder
     private static async Task<IResult> RefreshTokenAsync(RefreshTokenRequest request, IIdentityService identityService, HttpContext httpContext)
     {
         var result = await identityService.RefreshTokenAsync(request, httpContext.RequestAborted);
+
+        var response = httpContext.CreateResponse(result);
+        return response;
+    }
+
+    private static async Task<IResult> ResetPasswordAsync(ResetPasswordRequest request, IIdentityService identityService, HttpContext httpContext)
+    {
+        var result = await identityService.ResetPasswordAsync(request, httpContext.RequestAborted);
 
         var response = httpContext.CreateResponse(result);
         return response;

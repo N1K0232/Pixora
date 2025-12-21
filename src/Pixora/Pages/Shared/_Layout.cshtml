@@ -45,17 +45,14 @@
                     </template>
                     <template x-if="isAuthenticated">
                         <div class="dropdown">
-                            <a class="d-flex align-items-center text-decoration-none dropdown-toggle"
-                               data-bs-toggle="dropdown">
+                            <a class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
                                 <img :src="profilePhoto" class="rounded-circle me-2" width="32" height="32" />
                                 <span x-text="userName"></span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="/Account/Profile">Profile</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <button class="dropdown-item text-danger" @@click="logout">Logout</button>
-                                </li>
+                                <li><a class="dropdown-item text-danger" href="/Account/Logout">Logout</a></li>
                             </ul>
                         </div>
                     </template>

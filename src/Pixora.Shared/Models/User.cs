@@ -11,4 +11,6 @@ public class User
     public string Email { get; set; } = null!;
 
     public string UserName { get; set; } = null!;
+
+    public IEnumerable<string?> Roles { get; set; } = [];
 }

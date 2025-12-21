@@ -8,11 +8,13 @@ public interface IIdentityService
 {
     Task<Result> ConfirmEmailAsync(string secret, string token, CancellationToken cancellationToken);
 
-    Task<Result> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken);
+    Task<Result<ForgotPasswordResponse>> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken);
 
     Task<Result<StreamFileContent>> GetQrCodeAsync(string token, CancellationToken cancellationToken);
 
     Task<Result<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
+
+    Task<Result> LogoutAsync(CancellationToken cancellationToken);
 
     Task<Result<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken);
 
