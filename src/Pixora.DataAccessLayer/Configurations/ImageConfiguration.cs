@@ -18,7 +18,9 @@ internal class ImageConfiguration : BaseEntityConfiguration<Image>
 
         builder.Property(i => i.Description).HasMaxLength(4000).IsRequired(false);
         builder.Property(i => i.Tags).HasArrayConversion().HasColumnType("NVARCHAR(MAX)").IsRequired(false);
+
         builder.Property(i => i.IsPublished).HasDefaultValueSql("((1))").IsRequired();
+        builder.Property(i => i.PublishedAt).HasDefaultValueSql("SYSDATETIMEOFFSET()").IsRequired();
 
         builder.HasIndex(i => i.FileName)
             .IsClustered(false)

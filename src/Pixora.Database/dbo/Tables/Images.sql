@@ -11,6 +11,7 @@
     [CreatedAt]         DATETIME2               NOT NULL,
     [LastModifiedAt]    DATETIME2               NULL,
     [IsPublished]       BIT                     NOT NULL,
+    [PublishedAt]       DATETIMEOFFSET (7)      NOT NULL,
 );
 
 GO
@@ -32,6 +33,10 @@ ADD CONSTRAINT [DF_Images_CreatedAt] DEFAULT (SYSUTCDATETIME()) FOR [CreatedAt];
 GO
 ALTER TABLE [dbo].[Images]
 ADD CONSTRAINT [DF_Images_IsPublished] DEFAULT ((1)) FOR [IsPublished];
+
+GO
+ALTER TABLE [dbo].[Images]
+ADD CONSTRAINT [DF_Images_PublishedAt] DEFAULT (SYSDATETIMEOFFSET()) FOR [PublishedAt];
 
 GO
 CREATE UNIQUE NONCLUSTERED INDEX [IX_Images_FileName]

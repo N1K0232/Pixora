@@ -21,5 +21,7 @@ public class Image : BaseEntity
 
     public bool IsPublished { get; set; }
 
+    public DateTimeOffset PublishedAt { get; set; }
+
     public virtual ApplicationUser User { get; set; } = null!;
 }

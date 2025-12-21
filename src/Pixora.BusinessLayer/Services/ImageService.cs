@@ -1,5 +1,4 @@
-﻿using System.IO;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using OperationResults;
@@ -71,6 +70,11 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
             return Result.Fail(FailureReasons.ItemNotFound, "No image found", $"No image found with id {id}");
         }
 
+        if (!dbImage.IsPublished)
+        {
+            return Result.Fail(FailureReasons.Forbidden, "Content not available", "Content not available");
+        }
+
         var image = new Image
         {
             Id = id,
@@ -86,6 +90,7 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
     public async Task<Result<IEnumerable<Image>>> GetListAsync(CancellationToken cancellationToken)
     {
         var images = await dbContext.GetData<Entities.Image>()
+            .Where(i => i.IsPublished)
             .Select(i => new Image
             {
                 Id = i.Id,
@@ -109,13 +114,18 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
             return Result.Fail(FailureReasons.ItemNotFound, "No image found", $"No image found with id {id}");
         }
 
+        if (!image.IsPublished)
+        {
+            return Result.Fail(FailureReasons.Forbidden, "Content not available", "Content not available");
+        }
+
         var stream = await storageProvider.ReadAsStreamAsync(image.Path, cancellationToken);
         if (stream is null)
         {
             return Result.Fail(FailureReasons.ItemNotFound, "No image found", "No image found");
         }
 
-        var streamFileContent = new StreamFileContent(stream, image.ContentType, image.FileName);
+        var streamFileContent = new StreamFileContent(stream, image.ContentType);
         return streamFileContent;
     }
 
