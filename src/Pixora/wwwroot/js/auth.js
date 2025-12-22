@@ -76,15 +76,14 @@
                 const token = window.localStorage.getItem('twoFactorToken');
                 const response = await getQrCodeAsync(token, language);
 
-                if (response.status === 200)
+                if (response.status === 400)
                 {
-                    const blob = await response.blob();
-                    this.qrCodeSrc = URL.createObjectURL(blob);
+                    window.location.href = '/Account/ValidateTwoFactorCode';
                 }
                 else
                 {
-                    const content = await response.json();
-                    this.errorMessage = GetErrorMessage(response.status, content);
+                    const blob = await response.blob();
+                    this.qrCodeSrc = URL.createObjectURL(blob);
                 }
             }
             catch (error)
@@ -112,6 +111,7 @@
                     if (content.twoFactorToken != null)
                     {
                         window.localStorage.setItem('twoFactorToken', content.twoFactorToken);
+                        window.location.href = '/Account/QrCodeImage';
                     }
                     else
                     {
@@ -158,6 +158,11 @@
             {
                 this.isBusy = false;
             }
+        },
+
+        next: function ()
+        {
+            window.location.href = '/Account/ValidateTwoFactorCode';
         },
 
         refresh: async function ()
@@ -243,13 +248,16 @@
             try
             {
                 const token = window.localStorage.getItem('twoFactorToken');
-                const response = await validateTwoFactorAsync(token, this.code, language);
+                const response = await validateTwoFactorAsync(token, this.twoFactorCode, language);
 
                 const content = await response.json();
                 this.errorMessage = GetErrorMessage(response.status, content);
 
                 if (this.errorMessage == null)
                 {
+                    window.localStorage.setItem('access_token', content.accessToken);
+                    window.localStorage.setItem('refresh_token', content.refreshToken);
+
                     window.localStorage.removeItem('twoFactorToken');
                     window.location.href = '/';
                 }
@@ -296,7 +304,7 @@ async function forgotPasswordAsync(email, language)
 
 async function getQrCodeAsync(token, language)
 {
-    const response = await fetch('/api/auth/qrcode', {
+    const response = await fetch(`/api/auth/qrcode?token=${token}`, {
         method: "GET",
         headers: {
             "Accept-Language": language

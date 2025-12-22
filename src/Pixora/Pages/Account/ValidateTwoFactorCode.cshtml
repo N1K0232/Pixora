@@ -2,6 +2,20 @@
 
 @model ValidateTwoFactorCodeModel
 
+<div class="auth" x-data="auth">
+    <div class="text-center wrapper">
+        <h3 class="card-title text-center">Two factor sign in</h3>
+        <form x-on:submit.prevent>
+            <div class="input-box">
+                <label for="code">Code</label>
+                <input type="text" id="code" placeholder="Enter the two factor code" x-model="twoFactorCode" />
+                <span class="text-danger" x-text="errorMessage"></span>
+            </div>
+            <button type="submit" x-on:click="validateTwoFactor()" class="btn">Verify</button>
+        </form>
+    </div>
+</div>
+
 @section Scripts
 {
     <script>
