@@ -107,7 +107,6 @@ builder.Services.AddDefaultExceptionHandler();
 builder.Services.AddDefaultProblemDetails();
 
 builder.Services.AddSingleton(new QRCodeGenerator());
-builder.Services.AddScoped<IQrCodeGenerator, QrCodeImageGenerator>();
 
 builder.Services.AddSingleton<ILogEventEnricher, HttpContextEnricher>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
@@ -140,9 +139,6 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-builder.Services.AddDataProtection(settings.ApplicationName).PersistKeysToDbContext<ApplicationDbContext>();
-builder.Services.AddScoped<IClaimGenerator, UserClaimGenerator>();
-
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -159,7 +155,9 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.SameSite = CookieSameSiteMode.Strict;
 });
 
+builder.Services.AddDataProtection(settings.ApplicationName).PersistKeysToDbContext<ApplicationDbContext>();
 builder.Services.AddScoped<IAuthorizationHandler, UserActiveHandler>();
+
 builder.Services.AddAuthorization(options =>
 {
     var authorizationPolicyBuilder = new AuthorizationPolicyBuilder().RequireAuthenticatedUser();
@@ -195,6 +193,11 @@ if (settings.ExecuteStartup)
 {
     builder.Services.AddHostedService<IdentityStartupService>();
 }
+
+builder.Services.Scan(scan => scan.FromAssemblyOf<QrCodeImageGenerator>()
+    .AddClasses(classes => classes.InNamespaceOf<QrCodeImageGenerator>())
+    .AsImplementedInterfaces()
+    .WithScopedLifetime());
 
 builder.Services.Scan(scan => scan.FromAssemblyOf<IdentityService>()
     .AddClasses(classes => classes.InNamespaceOf<IdentityService>())

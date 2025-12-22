@@ -3,7 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using OperationResults;
 using Pixora.Authentication.Extensions;
-using Pixora.BusinessLayer.Internal;
+using Pixora.BusinessLayer.Generators.Interfaces;
 using Pixora.BusinessLayer.Services.Interfaces;
 using Pixora.DataAccessLayer;
 using Pixora.Shared.Models;
@@ -12,17 +12,16 @@ using Entities = Pixora.DataAccessLayer.Entities;
 
 namespace Pixora.BusinessLayer.Services;
 
-public class ImageService(IApplicationDbContext dbContext, IStorageProvider storageProvider, IHttpContextAccessor httpContextAccessor) : IImageService
+public class ImageService(IApplicationDbContext dbContext, IStorageProvider storageProvider, IPathGenerator pathGenerator, IHttpContextAccessor httpContextAccessor) : IImageService
 {
     public async Task<Result<Image>> SaveAsync(IFormFile file, string? description, string? tags, CancellationToken cancellationToken)
     {
         try
         {
             using var stream = file.OpenReadStream();
-            var path = PathGenerator.CreatePath(file.FileName);
+            var path = pathGenerator.CreatePath(file.FileName);
 
             await storageProvider.SaveAsync(stream, path, false, cancellationToken);
-
             var image = new Entities.Image
             {
                 UserId = httpContextAccessor.HttpContext!.User.GetId(),
