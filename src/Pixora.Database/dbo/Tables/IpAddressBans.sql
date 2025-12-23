@@ -9,7 +9,7 @@
 
 GO
 ALTER TABLE [dbo].[IpAddressBans]
-ADD CONSTRAINT [PK_IpAddressBans] PRIMARY KEY ([Id] ASC);
+ADD CONSTRAINT [PK_IpAddressBans] PRIMARY KEY CLUSTERED ([Id] ASC);
 
 GO
 ALTER TABLE [dbo].[IpAddressBans]

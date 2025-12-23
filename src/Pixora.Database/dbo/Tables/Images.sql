@@ -16,11 +16,13 @@
 
 GO
 ALTER TABLE [dbo].[Images]
-ADD CONSTRAINT [PK_Images] PRIMARY KEY ([Id] ASC);
+ADD CONSTRAINT [PK_Images] PRIMARY KEY CLUSTERED ([Id] ASC);
 
 GO
 ALTER TABLE [dbo].[Images]
-ADD CONSTRAINT [FK_Images_Users] FOREIGN KEY ([UserId]) REFERENCES [dbo].[AspNetUsers]([Id]);
+ADD CONSTRAINT [FK_Images_Users] FOREIGN KEY ([UserId]) REFERENCES [dbo].[AspNetUsers]([Id])
+ON DELETE CASCADE;
+
 
 GO
 ALTER TABLE [dbo].[Images]
