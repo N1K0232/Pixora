@@ -6,7 +6,7 @@ namespace Pixora.BusinessLayer.Services.Interfaces;
 
 public interface IImageService
 {
-    Task<Result<Image>> SaveAsync(IFormFile file, string? description, string? tags, CancellationToken cancellationToken);
+    Task<Result<Image>> SaveAsync(IFormFile file, string? description, string[]? tags, CancellationToken cancellationToken);
 
     Task<Result<Image>> GetAsync(Guid id, CancellationToken cancellationToken);
 

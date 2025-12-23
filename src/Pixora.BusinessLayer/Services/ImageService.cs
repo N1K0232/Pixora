@@ -14,7 +14,7 @@ namespace Pixora.BusinessLayer.Services;
 
 public class ImageService(IApplicationDbContext dbContext, IStorageProvider storageProvider, IPathGenerator pathGenerator, IHttpContextAccessor httpContextAccessor) : IImageService
 {
-    public async Task<Result<Image>> SaveAsync(IFormFile file, string? description, string? tags, CancellationToken cancellationToken)
+    public async Task<Result<Image>> SaveAsync(IFormFile file, string? description, string[]? tags, CancellationToken cancellationToken)
     {
         try
         {
@@ -30,7 +30,7 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
                 Length = stream.Length,
                 ContentType = file.ContentType,
                 Description = description,
-                Tags = tags?.Split(';') ?? []
+                Tags = tags!
             };
 
             await dbContext.CreateAsync(image, cancellationToken);

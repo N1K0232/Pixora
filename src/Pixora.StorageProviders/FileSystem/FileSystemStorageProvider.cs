@@ -13,6 +13,14 @@ internal class FileSystemStorageProvider(FileSystemStorageOptions options) : ISt
             Directory.CreateDirectory(directoryName);
         }
 
+        if (!overwrite)
+        {
+            if (File.Exists(fullPath))
+            {
+                throw new IOException($"The file path already exists");
+            }
+        }
+
         stream.Position = 0;
         using var fileStream = new FileStream(fullPath, FileMode.CreateNew, FileAccess.Write);
 

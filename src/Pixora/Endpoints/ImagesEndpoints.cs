@@ -1,10 +1,10 @@
 ﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc;
 using MinimalHelpers.Routing;
 using OperationResults.AspNetCore.Http;
 using Pixora.BusinessLayer.Services.Interfaces;
+using Pixora.Models;
 using Pixora.Shared.Models;
-using TinyHelpers.AspNetCore.DataAnnotations;
 
 namespace Pixora.Endpoints;
 
@@ -47,9 +47,9 @@ public class ImagesEndpoints : IEndpointRouteHandlerBuilder
             .WithName("DeleteImage");
     }
 
-    private static async Task<IResult> SaveAsync([BindRequired, AllowedExtensions("*.jpg", "*.jpeg", "*.png")] IFormFile file, string? description, string? tags, IImageService imageService, HttpContext httpContext)
+    private static async Task<IResult> SaveAsync([FromForm] UploadImageRequest request, IImageService imageService, HttpContext httpContext)
     {
-        var result = await imageService.SaveAsync(file, description, tags, httpContext.RequestAborted);
+        var result = await imageService.SaveAsync(request.File, request.Description, request.Tags, httpContext.RequestAborted);
 
         var response = httpContext.CreateResponse(result, "GetImage", new { id = result.Content?.Id });
         return response;
