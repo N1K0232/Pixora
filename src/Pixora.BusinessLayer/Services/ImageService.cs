@@ -1,33 +1,33 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using OperationResults;
 using Pixora.Authentication.Extensions;
 using Pixora.BusinessLayer.Generators.Interfaces;
 using Pixora.BusinessLayer.Services.Interfaces;
 using Pixora.DataAccessLayer;
 using Pixora.Shared.Models;
+using Pixora.Shared.Notifications;
 using Pixora.StorageProviders;
+using SimpleTransit;
 using Entities = Pixora.DataAccessLayer.Entities;
 
 namespace Pixora.BusinessLayer.Services;
 
-public class ImageService(IApplicationDbContext dbContext, IStorageProvider storageProvider, IPathGenerator pathGenerator, IHttpContextAccessor httpContextAccessor) : IImageService
+public class ImageService(IApplicationDbContext dbContext, IStorageProvider storageProvider, IMemoryCache cache, IPathGenerator pathGenerator, IHttpContextAccessor httpContextAccessor, INotificationPublisher notificationPublisher) : IImageService
 {
     public async Task<Result<Image>> SaveAsync(IFormFile file, string? description, string[]? tags, CancellationToken cancellationToken)
     {
         try
         {
-            using var stream = file.OpenReadStream();
             var path = pathGenerator.CreatePath(file.FileName);
-
-            await storageProvider.SaveAsync(stream, path, false, cancellationToken);
             var image = new Entities.Image
             {
                 UserId = httpContextAccessor.HttpContext!.User.GetId(),
                 FileName = file.FileName,
                 Path = path,
-                Length = stream.Length,
+                Length = file.Length,
                 ContentType = file.ContentType,
                 Description = description,
                 Tags = tags!
@@ -35,6 +35,9 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
 
             await dbContext.CreateAsync(image, cancellationToken);
             await dbContext.SaveAsync(cancellationToken);
+
+            using var stream = file.OpenReadStream();
+            await notificationPublisher.NotifyAsync(new ImageCreated(stream, path), cancellationToken);
 
             var createdImage = new Image
             {
@@ -63,46 +66,57 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
 
     public async Task<Result<Image>> GetAsync(Guid id, CancellationToken cancellationToken)
     {
-        var dbImage = await dbContext.GetAsync<Entities.Image>(id, cancellationToken);
-        if (dbImage is null)
+        var image = cache.Get<Image>($"Images-{id}");
+        if (image is null)
         {
-            return Result.Fail(FailureReasons.ItemNotFound, "No image found", $"No image found with id {id}");
+            var dbImage = await dbContext.GetAsync<Entities.Image>(id, cancellationToken);
+            if (dbImage is null)
+            {
+                return Result.Fail(FailureReasons.ItemNotFound, "No image found", $"No image found with id {id}");
+            }
+
+            if (!dbImage.IsPublished)
+            {
+                return Result.Fail(FailureReasons.Forbidden, "Content not available", "Content not available");
+            }
+
+            image = new Image
+            {
+                Id = id,
+                FileName = dbImage.FileName,
+                Path = dbImage.Path,
+                Length = dbImage.Length,
+                ContentType = dbImage.ContentType
+            };
         }
 
-        if (!dbImage.IsPublished)
-        {
-            return Result.Fail(FailureReasons.Forbidden, "Content not available", "Content not available");
-        }
-
-        var image = new Image
-        {
-            Id = id,
-            FileName = dbImage.FileName,
-            Path = dbImage.Path,
-            Length = dbImage.Length,
-            ContentType = dbImage.ContentType
-        };
-
+        cache.Set($"Images-{id}", image, TimeSpan.FromHours(1));
         return image;
     }
 
     public async Task<Result<IEnumerable<Image>>> GetListAsync(CancellationToken cancellationToken)
     {
-        var images = await dbContext.GetData<Entities.Image>()
-            .Where(i => i.IsPublished)
-            .Select(i => new Image
-            {
-                Id = i.Id,
-                FileName = i.FileName,
-                Path = i.Path,
-                Length = i.Length,
-                ContentType = i.ContentType,
-                Description = i.Description,
-                Tags = i.Tags
-            })
-            .ToListAsync(cancellationToken);
+        var images = await cache.GetOrCreateAsync("images", async (entry) =>
+        {
+            var images = await dbContext.GetData<Entities.Image>()
+                .Where(i => i.IsPublished)
+                .Select(i => new Image
+                {
+                    Id = i.Id,
+                    FileName = i.FileName,
+                    Path = i.Path,
+                    Length = i.Length,
+                    ContentType = i.ContentType,
+                    Description = i.Description,
+                    Tags = i.Tags
+                })
+                .ToListAsync(cancellationToken);
 
-        return images;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            return images;
+        });
+
+        return images ?? [];
     }
 
     public async Task<Result<StreamFileContent>> DownloadAsync(Guid id, CancellationToken cancellationToken)
@@ -136,10 +150,10 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
             return Result.Fail(FailureReasons.ItemNotFound, "No image found", $"No image found with id {id}");
         }
 
-        await storageProvider.DeleteAsync(image.Path, cancellationToken);
         await dbContext.DeleteAsync(image, cancellationToken);
-
         await dbContext.SaveAsync(cancellationToken);
+
+        await notificationPublisher.NotifyAsync(new ImageDeleted(id, image.Path), cancellationToken);
         return Result.Ok();
     }
 }

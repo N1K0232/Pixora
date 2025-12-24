@@ -89,6 +89,9 @@ if (swagger.IsEnabled)
 }
 
 builder.Services.AddSingleton(RandomNumberGenerator.Create());
+builder.Services.AddSingleton(new QRCodeGenerator());
+
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IEmailClient, EmailClient>();
 
 builder.Services.AddSimpleTransit(options =>
@@ -105,8 +108,6 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddDefaultExceptionHandler();
 builder.Services.AddDefaultProblemDetails();
-
-builder.Services.AddSingleton(new QRCodeGenerator());
 
 builder.Services.AddSingleton<ILogEventEnricher, HttpContextEnricher>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();

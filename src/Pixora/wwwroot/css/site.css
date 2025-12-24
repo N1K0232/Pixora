@@ -164,3 +164,17 @@ input[type="checkbox"] + label {
 .btn-clipboard:focus {
     z-index: 3;
 }
+
+.image-grid {
+    column-count: 4;
+    column-gap: 10px;
+}
+
+.image-grid a {
+    break-inside: avoid;
+}
+
+.image-grid img {
+    width: 100%;
+    margin-bottom: 10px;
+}
