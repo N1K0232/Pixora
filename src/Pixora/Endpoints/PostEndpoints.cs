@@ -11,15 +11,17 @@ public class PostEndpoints : IEndpointRouteHandlerBuilder
 {
     public static void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        var postApiGroup = endpoints.MapGroup("/api/posts").RequireAuthorization().WithTags("Posts");
+        var postApiGroup = endpoints.MapGroup("/api/posts").WithTags("Posts");
 
         postApiGroup.MapPost(string.Empty, CreateAsync)
+            .RequireAuthorization()
+            .WithValidation<SavePostRequest>()
             .Produces<Post>(StatusCodes.Status201Created)
             .Produces(StatusCodes.Status400BadRequest)
-            .WithValidation<SavePostRequest>()
             .WithName("CreatePost");
 
         postApiGroup.MapGet("{id:guid}", GetAsync)
+            .AllowAnonymous()
             .Produces<Post>()
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetPost");
@@ -30,13 +32,15 @@ public class PostEndpoints : IEndpointRouteHandlerBuilder
             .WithName("GetPosts");
 
         postApiGroup.MapPut("{id:guid}", UpdateAsync)
+            .RequireAuthorization()
+            .WithValidation<SavePostRequest>()
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound)
-            .WithValidation<SavePostRequest>()
             .WithName("UpdatePost");
 
         postApiGroup.MapDelete("{id:guid}", DeleteAsync)
+            .RequireAuthorization()
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound)
             .WithName("DeletePost");
