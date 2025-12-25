@@ -4,29 +4,53 @@ using Microsoft.AspNetCore.Identity;
 using MimeMapping;
 using OperationResults;
 using Pixora.Authentication.Entities;
+using Pixora.Authentication.Extensions;
 using Pixora.BusinessLayer.Services.Interfaces;
+using Pixora.Shared.Models;
+using Pixora.Shared.Notifications;
 using Pixora.StorageProviders;
+using SimpleTransit;
+using TinyHelpers.Extensions;
 
 namespace Pixora.BusinessLayer.Services;
 
 public class UserService(UserManager<ApplicationUser> userManager, IStorageProvider storageProvider) : IUserService
 {
+    public Task<Result<User>> GetAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
+    {
+        var user = new User
+        {
+            Id = principal.GetId(),
+            FirstName = principal.GetFirstName(),
+            LastName = principal.GetLastName(),
+            Email = principal.GetEmail(),
+            UserName = principal.Identity?.Name ?? string.Empty,
+            Roles = principal.GetUserRoles()
+        };
+
+        var result = Result<User>.Ok(user);
+        return Task.FromResult(result);
+    }
+
     public async Task<Result> UploadProfilePhotoAsync(IFormFile file, ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        using var stream = file.OpenReadStream();
         var user = await userManager.GetUserAsync(principal);
-
         if (user is null)
         {
             return Result.Fail(FailureReasons.Unauthorized);
         }
 
-        var path = $"users\\{user.Id}\\{file.FileName}";
-        await storageProvider.SaveAsync(stream, path, false, cancellationToken);
+        if (user.ProfilePhoto.HasValue() && await storageProvider.ExistsAsync(user.ProfilePhoto, cancellationToken))
+        {
+            await storageProvider.DeleteAsync(user.ProfilePhoto, cancellationToken);
+        }
 
+        using var stream = file.OpenReadStream();
+        var path = $"\\users\\{user.Id}\\{file.FileName}";
         user.ProfilePhoto = path;
-        await userManager.UpdateAsync(user);
 
+        await userManager.UpdateAsync(user);
+        await storageProvider.SaveAsync(stream, path, false, cancellationToken);
         return Result.Ok();
     }
 

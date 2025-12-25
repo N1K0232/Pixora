@@ -41,6 +41,14 @@ internal class FileSystemStorageProvider(FileSystemStorageOptions options) : ISt
         return Task.FromResult<Stream?>(stream);
     }
 
+    public Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default)
+    {
+        var fullPath = GetFullPath(path);
+        var exists = File.Exists(fullPath);
+
+        return Task.FromResult(exists);
+    }
+
     public Task DeleteAsync(string path, CancellationToken cancellationToken = default)
     {
         var fullPath = GetFullPath(path);

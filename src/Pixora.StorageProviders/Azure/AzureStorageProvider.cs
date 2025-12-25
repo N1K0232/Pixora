@@ -39,6 +39,14 @@ internal class AzureStorageProvider(AzureStorageOptions options) : IStorageProvi
         return stream;
     }
 
+    public async Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default)
+    {
+        var blobClient = await GetBlobClientAsync(path, false, cancellationToken).ConfigureAwait(false);
+        var blobExists = await blobClient.ExistsAsync(cancellationToken).ConfigureAwait(false);
+
+        return blobExists;
+    }
+
     public async Task DeleteAsync(string path, CancellationToken cancellationToken = default)
     {
         var (containerName, blobName) = ExtractContainerBlobName(path);

@@ -34,25 +34,18 @@ public class UserEndpoints : IEndpointRouteHandlerBuilder
             .Produces(StatusCodes.Status404NotFound)
             .WithName("deleteprofilephoto");
 
-        userApiGroup.MapGet(string.Empty, GetMe)
+        userApiGroup.MapGet(string.Empty, GetMeAsync)
             .RequireAuthorization()
             .Produces<User>()
             .WithName("me");
     }
 
-    private static Ok<User> GetMe(ClaimsPrincipal principal)
+    private static async Task<IResult> GetMeAsync(IUserService userService, HttpContext httpContext)
     {
-        var user = new User
-        {
-            Id = principal.GetId(),
-            FirstName = principal.GetFirstName(),
-            LastName = principal.GetLastName(),
-            Email = principal.GetEmail(),
-            UserName = principal.Identity?.Name ?? string.Empty,
-            Roles = principal.GetUserRoles()
-        };
+        var result = await userService.GetAsync(httpContext.User, httpContext.RequestAborted);
 
-        return TypedResults.Ok(user);
+        var response = httpContext.CreateResponse(result);
+        return response;
     }
 
     private static async Task<IResult> UploadProfilePhotoAsync([BindRequired, AllowedExtensions("*.jpg", "*.jpeg", "*.png")] IFormFile file, IUserService userService, HttpContext httpContext)
