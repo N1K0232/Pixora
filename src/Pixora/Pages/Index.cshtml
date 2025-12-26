@@ -14,8 +14,10 @@
         </div>
         <div x-show="errorMessage" class="alert alert-danger" x-text="errorMessage"></div>
         <div class="image-grid" x-show="!isBusy && list.length > 0">
-            <template x-for="image in list">
-                <img :src="image" class="image-item" loading="lazy" />
+            <template x-for="image in list" :key="image.id">
+                <a :href="`/Images/Details/${image.id}`">
+                    <img :src="`/api/images/${image.id}/stream`" class="image-item" loading="lazy" />
+                </a>
             </template>
         </div>
         <div x-show="!isBusy && list.length === 0" class="text-center text-muted mt-5">No image available</div>

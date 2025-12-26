@@ -1,11 +1,12 @@
 ﻿document.addEventListener("alpine:init", () => {
-    Alpine.data("userNavbar", () => ({
+
+    Alpine.store("user", {
         isAuthenticated: false,
-        userName: '',
+        user: {},
         profilePhoto: null,
         isBusy: false,
 
-        init: async function ()
+        async load()
         {
             this.isBusy = true;
             try
@@ -28,7 +29,7 @@
             }
         },
 
-        loadUser: async function (accessToken)
+        async loadUser(accessToken)
         {
             const response = await fetch('/api/me', {
                 method: "GET",
@@ -45,11 +46,11 @@
             }
 
             const content = await response.json();
-            this.userName = content.userName;
+            this.user = content;
             this.isAuthenticated = true;
         },
 
-        loadProfilePhoto: async function (accessToken)
+        async loadProfilePhoto(accessToken)
         {
             const response = await fetch('/api/me/profilephoto', {
                 method: "GET",
@@ -67,6 +68,28 @@
 
             const blob = await response.blob();
             this.profilePhoto = URL.createObjectURL(blob);
+        }
+    });
+
+    Alpine.data("userNavbar", () => ({
+        init()
+        {
+            Alpine.store("user").load();
+        },
+
+        get isAuthenticated()
+        {
+            return Alpine.store("user").isAuthenticated;
+        },
+
+        get user()
+        {
+            return Alpine.store("user").user;
+        },
+
+        get profilePhoto()
+        {
+            return Alpine.store("user").profilePhoto;
         }
     }));
 });

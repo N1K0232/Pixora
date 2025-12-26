@@ -4,6 +4,8 @@ public class Image
 {
     public Guid Id { get; set; }
 
+    public string? UserName { get; set; }
+
     public string FileName { get; set; } = null!;
 
     public string Path { get; set; } = null!;

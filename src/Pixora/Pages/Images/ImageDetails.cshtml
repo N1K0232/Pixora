@@ -1,0 +1,33 @@
+﻿@page "/Images/Details/{id:guid}"
+
+@model ImageDetailsModel
+
+<div x-data="images" x-init="getImage('@RouteData.Values["id"]')" x-cloak class="max-w-3xl mx-auto space-y-6">
+    <img :src="stream" class="bi-window-fullscreen max-h-[500px] object-fit-contain bg-gray-100 rounded" />
+    <div>
+        <h2 class="text-xl" font-semibold">Description</h2>
+        <p x-text="image.description ?? '-'"></p>
+    </div>
+    <div>
+        <h2 class="text-xl font-semibold">Tags</h2>
+        <div class="flex gap-2 flex-wrap">
+            <template x-for="tag in image.tags ?? []">
+                <span class="px-2 py-1 bg-gray-200 rounded text-sm" x-text="tag"></span>
+            </template>
+        </div>
+    </div>
+    <div>
+        <template x-if="$store.user.isAuthenticated && image?.userName === $store.user.userName">
+            <button @@click="deleteImage('@RouteData.Values["id"]')">Delete image</button>
+        </template>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script>
+        document.addEventListener("alpine:init", () => {
+            images('@Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName');
+        });
+    </script>
+}

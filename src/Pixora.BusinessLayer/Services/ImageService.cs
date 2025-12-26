@@ -19,12 +19,14 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
 {
     public async Task<Result<Image>> SaveAsync(IFormFile file, string? description, string[]? tags, CancellationToken cancellationToken)
     {
+        var httpContext = httpContextAccessor.HttpContext!;
+
         try
         {
             var path = pathGenerator.CreatePath(file.FileName);
             var image = new Entities.Image
             {
-                UserId = httpContextAccessor.HttpContext!.User.GetId(),
+                UserId = httpContext.User.GetId(),
                 FileName = file.FileName,
                 Path = path,
                 Length = file.Length,
@@ -42,10 +44,13 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
             var createdImage = new Image
             {
                 Id = image.Id,
+                UserName = httpContext.User.Identity?.Name,
                 FileName = file.FileName,
                 Path = path,
                 Length = image.Length,
-                ContentType = image.ContentType
+                ContentType = image.ContentType,
+                Description = description,
+                Tags = tags!
             };
 
             return createdImage;
@@ -69,7 +74,10 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
         var image = cache.Get<Image>($"Images-{id}");
         if (image is null)
         {
-            var dbImage = await dbContext.GetAsync<Entities.Image>(id, cancellationToken);
+            var dbImage = await dbContext.GetData<Entities.Image>()
+                .Include(i => i.User)
+                .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
             if (dbImage is null)
             {
                 return Result.Fail(FailureReasons.ItemNotFound, "No image found", $"No image found with id {id}");
@@ -83,6 +91,7 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
             image = new Image
             {
                 Id = id,
+                UserName = dbImage.User.UserName,
                 FileName = dbImage.FileName,
                 Path = dbImage.Path,
                 Length = dbImage.Length,
@@ -99,10 +108,13 @@ public class ImageService(IApplicationDbContext dbContext, IStorageProvider stor
         var images = await cache.GetOrCreateAsync("images", async (entry) =>
         {
             var images = await dbContext.GetData<Entities.Image>()
+                .Include(i => i.User)
                 .Where(i => i.IsPublished)
+                .OrderByDescending(i => i.CreatedAt)
                 .Select(i => new Image
                 {
                     Id = i.Id,
+                    UserName = i.User.UserName,
                     FileName = i.FileName,
                     Path = i.Path,
                     Length = i.Length,

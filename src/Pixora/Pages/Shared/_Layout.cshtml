@@ -19,7 +19,6 @@
     <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
 
-    <script src="~/lib/alpinejs/persist/dist/cdn.min.js" asp-append-version="true" defer></script>
     <script src="~/lib/alpine/cdn.min.js" asp-append-version="true" defer></script>
     <script src="~/lib/marked/marked.min.js" asp-append-version="true"></script>
 
@@ -43,11 +42,11 @@
                             <a class="btn btn-primary" href="/Account/Register">Sign Up</a>
                         </div>
                     </template>
-                    <template x-if="isAuthenticated">
+                    <template x-if="isAuthenticated && user">
                         <div class="dropdown">
                             <a class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
                                 <img :src="profilePhoto" class="rounded-circle me-2" width="32" height="32" />
-                                <span x-text="userName"></span>
+                                <span x-text="user.userName"></span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="/Account/Profile">Profile</a></li>
@@ -89,7 +88,6 @@
 
     <script src="~/js/app.js" asp-append-version="true"></script>
     <script src="~/js/auth.js" asp-append-version="true"></script>
-
     <script src="~/js/userNavbar.js" asp-append-version="true"></script>
     <script src="~/js/images.js" asp-append-version="true"></script>
     <script src="~/js/posts/postList.js" asp-append-version="true"></script>
