@@ -1,9 +1,11 @@
 ﻿document.addEventListener("alpine:init", () => {
 
+    const DEFAULT_PROFILE_PHOTO = '/defaultphoto.png';
+
     Alpine.store("user", {
         isAuthenticated: false,
         user: {},
-        profilePhoto: null,
+        profilePhoto: DEFAULT_PROFILE_PHOTO,
         isBusy: false,
 
         async load()
@@ -63,6 +65,7 @@
 
             if (!response.ok)
             {
+                this.profilePhoto = DEFAULT_PROFILE_PHOTO;
                 return;
             }
 
