@@ -31,11 +31,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Messages.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\UrlAddresses.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>UrlAddresses.resx</DependentUpon>
-    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -46,10 +41,6 @@
     <EmbeddedResource Update="Resources\Messages.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Messages.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\UrlAddresses.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>UrlAddresses.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

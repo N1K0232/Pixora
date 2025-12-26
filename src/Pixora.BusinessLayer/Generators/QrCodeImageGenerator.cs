@@ -20,19 +20,18 @@ public class QrCodeImageGenerator(UserManager<ApplicationUser> userManager, QRCo
         await userManager.ResetAuthenticatorKeyAsync(user);
         var secret = await userManager.GetAuthenticatorKeyAsync(user);
 
-        var qrCodeUri = CreateUri(secret, user.Email);
-        using var qrCodeData = generator.CreateQrCode(qrCodeUri, QRCodeGenerator.ECCLevel.Q);
+        var payload = new PayloadGenerator.OneTimePassword
+        {
+            Issuer = environment.ApplicationName,
+            Secret = secret!,
+            Label = user.Email!
+        };
 
+        using var qrCodeData = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.Q);
         using var qrCode = new PngByteQRCode(qrCodeData);
         var qrCodeBytes = qrCode.GetGraphic(3);
 
         var stream = new MemoryStream(qrCodeBytes);
         return stream;
-    }
-
-    private string CreateUri(string? secret, string? email)
-    {
-        var applicationName = Uri.EscapeDataString(environment.ApplicationName);
-        return string.Format(UrlAddresses.QRCodeUri, applicationName, email, secret, applicationName);
     }
 }
