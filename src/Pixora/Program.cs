@@ -3,7 +3,6 @@ using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using FluentValidation;
 using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -19,7 +18,6 @@ using Pixora.Authentication.Entities;
 using Pixora.BusinessLayer.Clients;
 using Pixora.BusinessLayer.Clients.Interfaces;
 using Pixora.BusinessLayer.Generators;
-using Pixora.BusinessLayer.Generators.Interfaces;
 using Pixora.BusinessLayer.Publishers;
 using Pixora.BusinessLayer.Services;
 using Pixora.BusinessLayer.Settings;
@@ -45,6 +43,7 @@ using TinyHelpers.Json.Serialization;
 using ResultErrorResponseFormat = OperationResults.AspNetCore.Http.ErrorResponseFormat;
 using ValidationErrorResponseFormat = MinimalHelpers.Validation.ErrorResponseFormat;
 using CookieSameSiteMode = Microsoft.AspNetCore.Http.SameSiteMode;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.local.json", true, true);
@@ -106,6 +105,11 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = settings.MaxUploadSize;
+});
+
 builder.Services.AddDefaultExceptionHandler();
 builder.Services.AddDefaultProblemDetails();
 
@@ -123,7 +127,6 @@ builder.Services.ConfigureValidation(options =>
 });
 
 builder.Services.AddSqlServer<ApplicationDbContext>(builder.Configuration.GetConnectionString("SqlConnection"));
-builder.Services.AddScoped<AuthenticationDbContext>(services => services.GetRequiredService<ApplicationDbContext>());
 builder.Services.AddScoped<IApplicationDbContext>(services => services.GetRequiredService<ApplicationDbContext>());
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -258,17 +261,16 @@ app.UseRouting();
 app.UseCors();
 app.UseRequestLocalization();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseWhen(context => context.IsApiRequest(), builder =>
 {
     builder.UseRequestTimeouts();
-    builder.UseAuthentication();
-
     builder.UseSerilogRequestLogging(options =>
     {
         options.IncludeQueryInRequestPath = true;
     });
-
-    builder.UseAuthorization();
 });
 
 app.MapRazorPages();

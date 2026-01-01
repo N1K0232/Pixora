@@ -8,6 +8,8 @@ public class AppSettings
 
     public bool ExecuteStartup { get; init; } = true;
 
+    public long MaxUploadSize { get; set; } = 20971520;
+
     public string? SenderEmail { get; init; }
 
     public string? SenderName { get; init; }
