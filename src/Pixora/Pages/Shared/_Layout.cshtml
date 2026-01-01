@@ -21,6 +21,11 @@
 
     <script src="~/lib/alpine/cdn.min.js" asp-append-version="true" defer></script>
     <script src="~/lib/marked/marked.min.js" asp-append-version="true"></script>
+    <script src="~/js/app.js" asp-append-version="true"></script>
+    <script src="~/js/auth.js" asp-append-version="true"></script>
+    <script src="~/js/userNavbar.js" asp-append-version="true"></script>
+    <script src="~/js/images.js" asp-append-version="true"></script>
+    <script src="~/js/posts/postList.js" asp-append-version="true"></script>
 
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
@@ -35,7 +40,7 @@
                     <img src="~/favicon-32x32.png" class="me-2" width="32" height="32" />
                     @environment.ApplicationName
                 </a>
-                <div class="ms-auto" x-data="userNavbar" x-init="init()" x-cloak>
+                <div class="ms-auto" x-data="userNavbar" x-init="load()" x-cloak>
                     <template x-if="!isAuthenticated">
                         <div class="d-flex gap-2">
                             <a class="btn btn-outline-primary" href="/Account/Login">Sign In</a>
@@ -85,12 +90,6 @@
 
     <script src="~/lib/jquery/jquery.min.js" asp-append-version="true"></script>
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
-
-    <script src="~/js/app.js" asp-append-version="true"></script>
-    <script src="~/js/auth.js" asp-append-version="true"></script>
-    <script src="~/js/userNavbar.js" asp-append-version="true"></script>
-    <script src="~/js/images.js" asp-append-version="true"></script>
-    <script src="~/js/posts/postList.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

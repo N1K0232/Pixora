@@ -75,7 +75,7 @@
     });
 
     Alpine.data("userNavbar", () => ({
-        init()
+        load()
         {
             Alpine.store("user").load();
         },

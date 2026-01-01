@@ -1,12 +1,51 @@
 ﻿function images(language)
 {
     Alpine.data("images", () => ({
-        file: null,
+        description: '',
+        tags: '',
         image: {},
         stream: null,
         list: [],
         isBusy: false,
         errorMessage: null,
+
+        uploadImage: async function ()
+        {
+            this.isBusy = true;
+
+            try
+            {
+                const form = new FormData();
+                form.append("file", this.$refs.file.files[0]);
+
+                if (this.description)
+                {
+                    form.append("description", this.description);
+                }
+
+                if (this.tags)
+                {
+                    this.tags.split(',').forEach(t => form.append("tags", t.trim()));
+                }
+
+                const response = await uploadImageAsync(form, language);
+                const content = await response.json();
+
+                this.errorMessage = GetErrorMessage(response.status, content);
+                if (this.errorMessage == null)
+                {
+                    window.location.href = `/Images/Details/${content.id}`;
+                }
+            }
+            catch (error)
+            {
+                this.errorMessage = error.message;
+            }
+            finally
+            {
+                this.isBusy = false;
+            }
+        },
 
         getImage: async function (id)
         {
@@ -87,6 +126,21 @@
             }
         }
     }));
+}
+
+async function uploadImageAsync(form, language)
+{
+    const accessToken = window.localStorage.getItem('access_token');
+    const response = await fetch('/api/images', {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept-Language": language
+        },
+        body: form
+    });
+
+    return response;
 }
 
 async function getImageAsync(id, language)
