@@ -1,4 +1,6 @@
-﻿namespace Pixora.BusinessLayer.Settings;
+﻿using System.Globalization;
+
+namespace Pixora.BusinessLayer.Settings;
 
 public class AppSettings
 {
@@ -6,9 +8,15 @@ public class AppSettings
 
     public string ApplicationDescription { get; init; } = "Upload photos, videos and posts. Interact with other users";
 
+    public int CommandTimeout { get; init; } = 120;
+
     public bool ExecuteStartup { get; init; } = true;
 
-    public long MaxUploadSize { get; set; } = 20971520;
+    public int MaxRetryCount { get; init; } = 10;
+
+    public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromSeconds(2);
+
+    public long MaxUploadSize { get; init; } = 20971520;
 
     public string? SenderEmail { get; init; }
 

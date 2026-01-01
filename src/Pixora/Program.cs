@@ -126,8 +126,16 @@ builder.Services.ConfigureValidation(options =>
     options.ErrorResponseFormat = ValidationErrorResponseFormat.List;
 });
 
-builder.Services.AddSqlServer<ApplicationDbContext>(builder.Configuration.GetConnectionString("SqlConnection"));
-builder.Services.AddScoped<IApplicationDbContext>(services => services.GetRequiredService<ApplicationDbContext>());
+builder.Services.AddDbContext<IApplicationDbContext, ApplicationDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("SqlConnection");
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.CommandTimeout(settings.CommandTimeout);
+        sqlOptions.EnableRetryOnFailure(settings.MaxRetryCount, settings.MaxRetryDelay, null);
+        sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+    });
+});
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 {
