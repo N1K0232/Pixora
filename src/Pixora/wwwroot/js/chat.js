@@ -5,7 +5,7 @@
         messages: [],
         text: '',
         connected: false,
-        conversationId: uuid(),
+        conversationId: getConversationId(),
 
         init: function ()
         {
@@ -42,7 +42,14 @@
             switch (msg.type)
             {
                 case "message":
+                    msg.isMine = msg.userId === this.currentUserId;
                     this.messages.push(msg);
+
+                    this.$nextTick(() =>
+                    {
+                        this.$refs.messages.scrollTop = this.$refs.messages.scrollHeight;
+                    });
+
                     break;
 
                 case "message:list":
@@ -72,4 +79,10 @@
             this.text = '';
         }
     }));
+}
+
+function getConversationId()
+{
+    const params = new URLSearchParams(window.location.search);
+    return params.get('conversationId');
 }
