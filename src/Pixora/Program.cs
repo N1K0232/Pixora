@@ -44,6 +44,10 @@ using ResultErrorResponseFormat = OperationResults.AspNetCore.Http.ErrorResponse
 using ValidationErrorResponseFormat = MinimalHelpers.Validation.ErrorResponseFormat;
 using CookieSameSiteMode = Microsoft.AspNetCore.Http.SameSiteMode;
 using Microsoft.AspNetCore.Http.Features;
+using Pixora.BusinessLayer.Connections.Interfaces;
+using Pixora.BusinessLayer.Connections;
+using Pixora.BusinessLayer.Handlers.Interfaces;
+using Pixora.BusinessLayer.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.local.json", true, true);
@@ -206,6 +210,9 @@ if (settings.ExecuteStartup)
     builder.Services.AddHostedService<IdentityStartupService>();
 }
 
+builder.Services.AddSingleton<IUserConnectionManager, UserConnectionManager>();
+builder.Services.AddScoped<IChatWebSocketHandler, ChatWebSocketHandler>();
+
 builder.Services.Scan(scan => scan.FromAssemblyOf<QrCodeImageGenerator>()
     .AddClasses(classes => classes.InNamespaceOf<QrCodeImageGenerator>())
     .AsImplementedInterfaces()
@@ -281,6 +288,7 @@ app.UseWhen(context => context.IsApiRequest(), builder =>
     });
 });
 
+app.UseWebSockets();
 app.MapRazorPages();
 app.MapEndpoints();
 
