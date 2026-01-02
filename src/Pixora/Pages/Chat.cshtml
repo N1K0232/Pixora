@@ -2,7 +2,26 @@
 
 @model ChatModel
 
-<div x-data="chat" x-init x-cloak>
+<div class="chat-wrapper" x-data="chat" x-init x-cloak>
+    <div class="chat-header">
+        <span class="chat-title">Conversation</span>
+        <span class="chat-status"
+              :class="connected ? 'online' : 'offline'"
+              x-text="connected ? 'Online' : 'Disconnected'">
+        </span>
+    </div>
+    <div class="chat-messages" x-ref="messages">
+        <template x-for="m in messages" :key="m.messageId">
+            <div class="chat-message" :class="m.isMine ? 'mine' : 'theirs'">
+                <div class="author" x-text="m.userName"></div>
+                <div class="bubble" x-text="m.content"></div>
+            </div>
+        </template>
+    </div>
+    <div class="chat-input">
+        <input type="text"x-model="text" @@keydown.enter ="sendMessage" placeholder="Scrivi un messaggio..." autocomplete="off" />
+        <button @@click ="sendMessage" :disabled="!connected || !text.trim()">Invia</button>
+    </div>
 </div>
 
 @section Scripts

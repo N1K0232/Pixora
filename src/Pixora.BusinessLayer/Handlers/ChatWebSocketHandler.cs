@@ -1,4 +1,5 @@
-﻿using System.Net.WebSockets;
+﻿using System.Net.Http;
+using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -44,13 +45,35 @@ public class ChatWebSocketHandler(IChatService chatService, IUserConnectionManag
 
     private async Task<ClaimsPrincipal> AuthenticateAsync(HttpContext httpContext)
     {
-        string? accessToken = httpContext.Request.Headers[HeaderNames.Authorization];
-        if (accessToken.HasValue())
+        var accessToken = GetAccessToken(httpContext);
+        if (string.IsNullOrWhiteSpace(accessToken))
         {
-            return await jwtBearerService.ValidateTokenAsync(accessToken, true);
+            throw new UnauthorizedAccessException("Missing access token");
         }
 
-        throw new UnauthorizedAccessException("Unauthorized");
+        return await jwtBearerService.ValidateTokenAsync(accessToken, true);
+    }
+
+    private static string? GetAccessToken(HttpContext httpContext)
+    {
+        string? token = null;
+
+        if (httpContext.Request.Query.TryGetValue("access_token", out var qsToken))
+        {
+            token = qsToken.ToString();
+        }
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            string? authenticationHeader = httpContext.Request.Headers[HeaderNames.Authorization];
+
+            if (authenticationHeader.HasValue() && authenticationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                token = authenticationHeader["Bearer ".Length..];
+            }
+        }
+
+        return token;
     }
 
     private static async Task<WsMessage> ReceiveAsync(WebSocket socket, CancellationToken cancellationToken)
