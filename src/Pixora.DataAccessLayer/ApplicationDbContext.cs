@@ -9,31 +9,31 @@ namespace Pixora.DataAccessLayer;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ILogger<ApplicationDbContext> logger) : AuthenticationDbContext(options), IApplicationDbContext
 {
-    public async Task CreateAsync<T>(T entity, CancellationToken cancellationToken = default) where T : BaseEntity
+    public async Task CreateAsync<T>(T entity, CancellationToken cancellationToken = default) where T : class
     {
         ArgumentNullException.ThrowIfNull(entity, nameof(entity));
         await Set<T>().AddAsync(entity, cancellationToken).ConfigureAwait(false);
     }
 
-    public Task DeleteAsync<T>(T entity, CancellationToken cancellationToken = default) where T : BaseEntity
+    public Task DeleteAsync<T>(T entity, CancellationToken cancellationToken = default) where T : class
     {
         Set<T>().Remove(entity);
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync<T>(IEnumerable<T> entities, CancellationToken cancellationToken = default) where T : BaseEntity
+    public Task DeleteAsync<T>(IEnumerable<T> entities, CancellationToken cancellationToken = default) where T : class
     {
         Set<T>().RemoveRange(entities);
         return Task.CompletedTask;
     }
 
-    public async ValueTask<T?> GetAsync<T>(Guid id, CancellationToken cancellationToken = default) where T : BaseEntity
+    public async ValueTask<T?> GetAsync<T>(Guid id, CancellationToken cancellationToken = default) where T : class
     {
         var entity = await Set<T>().FindAsync([id], cancellationToken).ConfigureAwait(false);
         return entity;
     }
 
-    public IQueryable<T> GetData<T>(bool trackingChanges = false) where T : BaseEntity
+    public IQueryable<T> GetData<T>(bool trackingChanges = false) where T : class
     {
         var set = Set<T>();
         return trackingChanges ? set : set.AsNoTrackingWithIdentityResolution();
